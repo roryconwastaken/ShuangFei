@@ -1,0 +1,22 @@
+# ShuangFei root .gitignore
+# Rename this file to .gitignore after placing in your project root
+
+# Environment variables — NEVER commit these
+.env
+.env.local
+.env.*.local
+
+# Expo / React Native
+apps/mobile/.expo/
+apps/mobile/node_modules/
+apps/mobile/android/
+apps/mobile/ios/
+apps/mobile/dist/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
