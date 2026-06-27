@@ -24,3 +24,6 @@ Thumbs.db
 .claude/
 CLAUDE.md
 AGENTS.md
+
+# Dev notes (local reference only)
+DEV_NOTES.md

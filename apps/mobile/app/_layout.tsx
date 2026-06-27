@@ -1,6 +1,7 @@
 import 'react-native-url-polyfill/auto';
 import { useEffect } from 'react';
 import { Stack, useRouter, useSegments } from 'expo-router';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { supabase } from '../src/lib/supabase';
 import { useAuthStore } from '../src/stores/authStore';
 
@@ -46,10 +47,12 @@ export default function RootLayout() {
   }, [session, profile, loading, segments]);
 
   return (
-    <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="(auth)" />
-      <Stack.Screen name="(student)" />
-      <Stack.Screen name="(teacher)" />
-    </Stack>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="(auth)" />
+        <Stack.Screen name="(student)" />
+        <Stack.Screen name="(teacher)" />
+      </Stack>
+    </GestureHandlerRootView>
   );
 }
