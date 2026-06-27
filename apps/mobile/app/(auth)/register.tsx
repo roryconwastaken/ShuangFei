@@ -8,12 +8,10 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
-  Alert,
   ScrollView,
 } from 'react-native';
 import { Link } from 'expo-router';
-import { supabase } from '../../src/lib/supabase';
-import { Role } from '../../src/lib/supabase';
+import { supabase, Role } from '../../src/lib/supabase';
 
 export default function RegisterScreen() {
   const [name, setName] = useState('');
@@ -22,18 +20,20 @@ export default function RegisterScreen() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [role, setRole] = useState<Role>('student');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
   const handleRegister = async () => {
+    setError('');
     if (!name || !email || !password) {
-      Alert.alert('Error', 'Please fill in all fields.');
+      setError('Please fill in all fields.');
       return;
     }
     if (password !== confirmPassword) {
-      Alert.alert('Error', 'Passwords do not match.');
+      setError('Passwords do not match.');
       return;
     }
     if (password.length < 6) {
-      Alert.alert('Error', 'Password must be at least 6 characters.');
+      setError('Password must be at least 6 characters.');
       return;
     }
 
@@ -47,9 +47,7 @@ export default function RegisterScreen() {
     });
     setLoading(false);
 
-    if (error) {
-      Alert.alert('Registration failed', error.message);
-    }
+    if (error) setError(error.message);
     // On success, _layout.tsx auth listener handles redirect
   };
 
@@ -141,6 +139,8 @@ export default function RegisterScreen() {
                 </Text>
               </View>
             )}
+
+            {error ? <Text style={styles.error}>{error}</Text> : null}
 
             <TouchableOpacity
               style={[styles.button, loading && styles.buttonDisabled]}
@@ -297,5 +297,11 @@ const styles = StyleSheet.create({
     color: '#e63946',
     fontSize: 14,
     fontWeight: '600',
+  },
+  error: {
+    color: '#e63946',
+    fontSize: 13,
+    marginTop: 12,
+    textAlign: 'center',
   },
 });

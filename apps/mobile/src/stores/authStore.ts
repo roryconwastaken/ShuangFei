@@ -25,12 +25,12 @@ export const useAuthStore = create<AuthState>((set) => ({
   setProfile: (profile) => set({ profile }),
 
   fetchProfile: async (userId) => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('profiles')
       .select('*')
       .eq('id', userId)
-      .single();
-    set({ profile: data ?? null });
+      .maybeSingle();       // returns null (not an error) when no row found
+    if (!error) set({ profile: data ?? null });
   },
 
   signOut: async () => {

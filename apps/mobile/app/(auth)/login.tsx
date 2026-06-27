@@ -8,7 +8,6 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
-  Alert,
 } from 'react-native';
 import { Link } from 'expo-router';
 import { supabase } from '../../src/lib/supabase';
@@ -17,16 +16,18 @@ export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
   const handleLogin = async () => {
+    setError('');
     if (!email || !password) {
-      Alert.alert('Error', 'Please enter your email and password.');
+      setError('Please enter your email and password.');
       return;
     }
     setLoading(true);
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     setLoading(false);
-    if (error) Alert.alert('Login failed', error.message);
+    if (error) setError(error.message);
     // On success, _layout.tsx auth listener handles redirect
   };
 
@@ -64,6 +65,8 @@ export default function LoginScreen() {
             placeholderTextColor="#aaa"
             secureTextEntry
           />
+
+          {error ? <Text style={styles.error}>{error}</Text> : null}
 
           <TouchableOpacity
             style={[styles.button, loading && styles.buttonDisabled]}
@@ -176,5 +179,11 @@ const styles = StyleSheet.create({
     color: '#e63946',
     fontSize: 14,
     fontWeight: '600',
+  },
+  error: {
+    color: '#e63946',
+    fontSize: 13,
+    marginTop: 12,
+    textAlign: 'center',
   },
 });
