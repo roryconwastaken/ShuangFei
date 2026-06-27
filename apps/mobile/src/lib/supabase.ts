@@ -1,7 +1,4 @@
 // ============================================================
-// apps/mobile/src/lib/supabase.ts
-// Copy this file to: apps/mobile/src/lib/supabase.ts
-// ============================================================
 // Requires:
 //   npm install @supabase/supabase-js
 //   npm install react-native-url-polyfill

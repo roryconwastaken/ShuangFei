@@ -1,5 +1,4 @@
 # ShuangFei root .gitignore
-# Rename this file to .gitignore after placing in your project root
 
 # Environment variables — NEVER commit these
 .env
@@ -20,3 +19,8 @@ Thumbs.db
 # Editor
 .vscode/
 .idea/
+
+# Claude / AI tooling
+.claude/
+CLAUDE.md
+AGENTS.md
