@@ -114,6 +114,44 @@ export default function BKBCanvas({
 
   const sizeRef = useRef({ width: 0, height: 0 });
 
+  // Annotation eraser - cell-based, only removes annotation strokes
+  const eraseAnnCellsRef   = useRef<Set<string>>(new Set());
+  const eraseAnnSessionRef = useRef<Stroke[]>([]);
+
+  const _eraseAnnotationCell = useCallback((cx: number, cy: number) => {
+    const { width, height } = sizeRef.current;
+    if (width === 0) return;
+    const x0 = MARGIN, y0 = MARGIN;
+    const cw = (width - 2 * MARGIN) / COLS;
+    const ch = (height - 2 * MARGIN) / ROWS;
+    const col = Math.floor((cx - x0) / cw);
+    const row = Math.floor((cy - y0) / ch);
+    if (col < 0 || col >= COLS || row < 0 || row >= ROWS) return;
+    const key = `${col},${row}`;
+    if (eraseAnnCellsRef.current.has(key)) return;
+    eraseAnnCellsRef.current.add(key);
+    const cellL = x0 + col * cw, cellT = y0 + row * ch;
+    const cellR = cellL + cw,    cellB = cellT + ch;
+    const before = eraseAnnSessionRef.current;
+    const after = before.filter(s =>
+      !s.points.some(p => p.x >= cellL && p.x <= cellR && p.y >= cellT && p.y <= cellB)
+    );
+    if (after.length !== before.length) {
+      eraseAnnSessionRef.current = after;
+      onAnnotationEndRef.current?.(after);
+    }
+  }, []);
+
+  const startAnnotationErase = useCallback((cx: number, cy: number) => {
+    eraseAnnCellsRef.current   = new Set();
+    eraseAnnSessionRef.current = [...annotationsRef.current];
+    _eraseAnnotationCell(cx, cy);
+  }, [_eraseAnnotationCell]);
+
+  const continueAnnotationErase = useCallback((cx: number, cy: number) => {
+    _eraseAnnotationCell(cx, cy);
+  }, [_eraseAnnotationCell]);
+
   // ─── Shared values (accessible from UI-thread worklets) ────────────────────
   const transformSV = useSharedValue({ scale: 1, offsetX: 0, offsetY: 0 });
   const canvasSizeSV = useSharedValue({ width: 0, height: 0 });
@@ -234,6 +272,10 @@ export default function BKBCanvas({
         cy = Math.max(MARGIN, Math.min(s.height - MARGIN, cy));
       }
       if (annotationModeSV.value) {
+        if (toolSV.value === 'eraser') {
+          runOnJS(startAnnotationErase)(cx, cy);
+          return;
+        }
         activeColorSV.value = '#e63946';
         activeWidthSV.value = strokeWidthSV.value;
       } else if (toolSV.value === 'eraser') {
@@ -255,6 +297,10 @@ export default function BKBCanvas({
       if (s.width > 0) {
         cx = Math.max(MARGIN, Math.min(s.width - MARGIN, cx));
         cy = Math.max(MARGIN, Math.min(s.height - MARGIN, cy));
+      }
+      if (annotationModeSV.value && toolSV.value === 'eraser') {
+        runOnJS(continueAnnotationErase)(cx, cy);
+        return;
       }
       if (activePointsSV.value.length === 0) return;
       const prev = activePointsSV.value;
