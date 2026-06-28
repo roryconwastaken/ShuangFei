@@ -7,7 +7,6 @@ import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase, DocumentType } from '../../../src/lib/supabase';
 import { useAuthStore } from '../../../src/stores/authStore';
-import { createLocalNote } from '../../../src/lib/localNotes';
 
 export default function NewDocument() {
   const router = useRouter();
@@ -21,21 +20,14 @@ export default function NewDocument() {
     if (!title.trim()) { setError('Please enter a title.'); return; }
     setLoading(true);
 
-    if (type === 'notes') {
-      // Notes are stored locally only - never sent to Supabase
-      const note = await createLocalNote(title.trim(), user!.id);
-      setLoading(false);
-      router.replace(`/(student)/document/${note.id}`);
-    } else {
-      const { data, error: err } = await supabase
-        .from('documents')
-        .insert({ owner_id: user!.id, title: title.trim(), type })
-        .select()
-        .single();
-      setLoading(false);
-      if (err) { setError(err.message); return; }
-      router.replace(`/(student)/document/${data.id}`);
-    }
+    const { data, error: err } = await supabase
+      .from('documents')
+      .insert({ owner_id: user!.id, title: title.trim(), type })
+      .select()
+      .single();
+    setLoading(false);
+    if (err) { setError(err.message); return; }
+    router.replace(`/(student)/document/${data.id}`);
   };
 
   return (

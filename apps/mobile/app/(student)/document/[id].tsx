@@ -6,7 +6,6 @@ import BKBCanvas from '../../../src/components/canvas/BKBCanvas';
 import Toolbar from '../../../src/components/canvas/Toolbar';
 import { useCanvas } from '../../../src/hooks/useCanvas';
 import { supabase } from '../../../src/lib/supabase';
-import { getLocalNote, updateLocalNoteTitle } from '../../../src/lib/localNotes';
 
 export default function DocumentEditor() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -16,7 +15,6 @@ export default function DocumentEditor() {
   const [titleDraft, setTitleDraft] = useState('');
   const [saving, setSaving] = useState(false);
   const [zoomLocked, setZoomLocked] = useState(true);
-  const isLocal = id.startsWith('local_');
   const titleInputRef = useRef<TextInput>(null);
 
   const {
@@ -37,26 +35,16 @@ export default function DocumentEditor() {
 
   useEffect(() => {
     const init = async () => {
-      if (isLocal) {
-        const note = await getLocalNote(id);
-        if (note) {
-          setTitle(note.title);
-          setTitleDraft(note.title);
-          setPageCount(note.page_count);
-        }
-      } else {
-        const { data } = await supabase
-          .from('documents')
-          .select('title, page_count')
-          .eq('id', id)
-          .maybeSingle();
-        if (data) {
-          setTitle(data.title);
-          setTitleDraft(data.title);
-          setPageCount(data.page_count);
-        }
+      const { data } = await supabase
+        .from('documents')
+        .select('title, page_count')
+        .eq('id', id)
+        .maybeSingle();
+      if (data) {
+        setTitle(data.title);
+        setTitleDraft(data.title);
+        setPageCount(data.page_count);
       }
-
       await loadPage(1);
     };
     init();
@@ -67,11 +55,7 @@ export default function DocumentEditor() {
     const next = titleDraft.trim();
     if (!next || next === title) { setTitleDraft(title); return; }
     setTitle(next);
-    if (isLocal) {
-      await updateLocalNoteTitle(id, next);
-    } else {
-      await supabase.from('documents').update({ title: next }).eq('id', id);
-    }
+    await supabase.from('documents').update({ title: next }).eq('id', id);
   };
 
   const handleClearPage = () => {
@@ -86,8 +70,8 @@ export default function DocumentEditor() {
   };
 
   const handleDeletePage = () => {
-    // Block deletion if teacher has annotated this homework page
-    if (!isLocal && annotations.length > 0) {
+    // Block deletion if teacher has annotated this page (homework only — notes won't have annotations)
+    if (annotations.length > 0) {
       Alert.alert(
         'Cannot Delete Page',
         'This page has teacher feedback. You can clear your strokes instead.',
@@ -134,7 +118,6 @@ export default function DocumentEditor() {
         <View style={{ width: 60 }} />
       </View>
 
-      {/* Toolbar */}
       <Toolbar
         tool={tool}
         onToolChange={setTool}
@@ -156,7 +139,6 @@ export default function DocumentEditor() {
         onZoomLockChange={setZoomLocked}
       />
 
-      {/* Canvas */}
       <BKBCanvas
         strokes={strokes}
         annotations={annotations}
@@ -181,19 +163,10 @@ const styles = StyleSheet.create({
   },
   backBtn: { width: 60 },
   backText: { color: '#e63946', fontSize: 15, fontWeight: '600' },
-  titleBtn: {
-    flex: 1,
-    alignItems: 'center',
-    marginHorizontal: 8,
-  },
-  titleText: {
-    color: '#fff', fontSize: 16, fontWeight: '700', textAlign: 'center',
-  },
+  titleBtn: { flex: 1, alignItems: 'center', marginHorizontal: 8 },
+  titleText: { color: '#fff', fontSize: 16, fontWeight: '700', textAlign: 'center' },
   titleInput: {
-    flex: 1,
-    color: '#fff', fontSize: 16, fontWeight: '700', textAlign: 'center',
-    marginHorizontal: 8,
-    borderBottomWidth: 1, borderBottomColor: '#e63946',
-    paddingVertical: 2,
+    flex: 1, color: '#fff', fontSize: 16, fontWeight: '700', textAlign: 'center',
+    marginHorizontal: 8, borderBottomWidth: 1, borderBottomColor: '#e63946', paddingVertical: 2,
   },
 });

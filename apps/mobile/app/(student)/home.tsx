@@ -8,9 +8,6 @@ import { useRouter, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase, Document } from '../../src/lib/supabase';
 import { useAuthStore } from '../../src/stores/authStore';
-import { listLocalNotes, deleteLocalNote, LocalNote } from '../../src/lib/localNotes';
-
-type DisplayDoc = (Document | LocalNote) & { id: string };
 
 const TYPE_ICON: Record<string, string> = {
   homework: '📚',
@@ -20,7 +17,7 @@ const TYPE_ICON: Record<string, string> = {
 export default function StudentHome() {
   const router = useRouter();
   const { profile, signOut } = useAuthStore();
-  const [documents, setDocuments] = useState<DisplayDoc[]>([]);
+  const [documents, setDocuments] = useState<Document[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [teacherName, setTeacherName] = useState<string | null>(null);
@@ -35,23 +32,14 @@ export default function StudentHome() {
   const fetchDocuments = useCallback(async () => {
     setLoading(true);
 
-    // Homework from Supabase
-    const { data: remote } = await supabase
+    const { data: docs } = await supabase
       .from('documents')
       .select('*')
       .eq('owner_id', profile?.id)
-      .eq('type', 'homework')
+      .in('type', ['homework', 'notes'])
       .order('updated_at', { ascending: false });
 
-    // Notes from local storage
-    const local = await listLocalNotes();
-
-    const merged = [
-      ...(remote ?? []),
-      ...local,
-    ].sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime());
-
-    setDocuments(merged as DisplayDoc[]);
+    setDocuments(docs ?? []);
 
     // Current teacher + active whiteboard
     const { data: st } = await supabase
@@ -119,16 +107,12 @@ export default function StudentHome() {
     }
   };
 
-  const handleDelete = async (doc: DisplayDoc) => {
-    if (doc.id.startsWith('local_')) {
-      await deleteLocalNote(doc.id);
-    } else {
-      await supabase.from('documents').delete().eq('id', doc.id);
-    }
+  const handleDelete = async (doc: Document) => {
+    await supabase.from('documents').delete().eq('id', doc.id);
     fetchDocuments();
   };
 
-  const confirmDelete = (doc: DisplayDoc) => {
+  const confirmDelete = (doc: Document) => {
     Alert.alert(
       'Delete Document',
       `Delete "${doc.title}"? This cannot be undone.`,
@@ -206,7 +190,7 @@ export default function StudentHome() {
           contentContainerStyle={styles.list}
           numColumns={2}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#e63946']} tintColor="#e63946" />}
-          renderItem={({ item }) => (
+          renderItem={({ item }: { item: Document }) => (
             <TouchableOpacity
               style={styles.card}
               onPress={() => router.push(`/(student)/document/${item.id}`)}
