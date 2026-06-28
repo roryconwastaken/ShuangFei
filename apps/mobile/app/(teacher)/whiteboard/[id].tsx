@@ -229,6 +229,17 @@ export default function TeacherWhiteboard() {
         <Text style={styles.saveStatus}>{saving ? 'Saving...' : 'Saved ✓'}</Text>
         <View style={styles.divider} />
 
+        {/* Clear all strokes */}
+        <TouchableOpacity style={styles.clearBtn} onPress={() => {
+          Alert.alert('Clear Whiteboard', 'Clear all strokes on this whiteboard?', [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Clear', style: 'destructive', onPress: () => handleStrokeEnd([]) },
+          ]);
+        }}>
+          <MaterialCommunityIcons name="broom" size={18} color="rgba(255,255,255,0.7)" />
+        </TouchableOpacity>
+
+        {/* Delete whiteboard */}
         <TouchableOpacity style={styles.deleteBtn} onPress={confirmDelete}>
           <MaterialCommunityIcons name="trash-can-outline" size={18} color="#e63946" />
         </TouchableOpacity>
@@ -343,7 +354,8 @@ const styles = StyleSheet.create({
   widthBtnActive: { backgroundColor: 'rgba(255,255,255,0.15)' },
   divider: { width: 1, height: 28, backgroundColor: 'rgba(255,255,255,0.15)', marginHorizontal: 4 },
   saveStatus: { color: 'rgba(255,255,255,0.5)', fontSize: 11, marginHorizontal: 4 },
-  deleteBtn: { width: 36, height: 36, borderRadius: 8, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(230,57,70,0.15)' },
+  clearBtn: { width: 36, height: 36, borderRadius: 8, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.08)', marginLeft: 2 },
+  deleteBtn: { width: 36, height: 36, borderRadius: 8, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(230,57,70,0.15)', marginLeft: 2 },
   colorBtn: { width: 30, height: 30, justifyContent: 'center', alignItems: 'center' },
   colorDot: { width: 18, height: 18, borderRadius: 9 },
   colorDotActive: { width: 22, height: 22, borderRadius: 11, borderWidth: 2, borderColor: '#fff' },

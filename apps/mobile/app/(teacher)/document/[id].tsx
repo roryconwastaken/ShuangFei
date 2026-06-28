@@ -52,6 +52,14 @@ export default function TeacherDocument() {
   }, [id]);
 
   const confirmDeletePage = () => {
+    if (strokes.length > 0) {
+      Alert.alert(
+        'Cannot Delete Page',
+        'This page has student work. You can clear your annotations instead.',
+        [{ text: 'OK' }],
+      );
+      return;
+    }
     Alert.alert(
       'Delete Page',
       pageCount <= 1
@@ -158,7 +166,17 @@ export default function TeacherDocument() {
           <Text style={styles.addPageText}>Page</Text>
         </TouchableOpacity>
 
-        {/* Delete / clear page */}
+        {/* Clear annotations */}
+        <TouchableOpacity style={styles.clearPageBtn} onPress={() => {
+          Alert.alert('Clear Annotations', 'Remove all your annotations on this page?', [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Clear', style: 'destructive', onPress: () => handleAnnotationEnd([]) },
+          ]);
+        }}>
+          <MaterialCommunityIcons name="broom" size={18} color="rgba(255,255,255,0.7)" />
+        </TouchableOpacity>
+
+        {/* Delete page */}
         <TouchableOpacity style={styles.deletePageBtn} onPress={confirmDeletePage}>
           <MaterialCommunityIcons name="trash-can-outline" size={18} color="#e63946" />
         </TouchableOpacity>
@@ -205,13 +223,17 @@ const styles = StyleSheet.create({
   pageLabel: { color: '#fff', fontSize: 13, fontWeight: '600', marginHorizontal: 4, minWidth: 40, textAlign: 'center' },
   saveStatus: { color: 'rgba(255,255,255,0.5)', fontSize: 11, marginHorizontal: 4 },
   addPageBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 3,
     paddingHorizontal: 10, paddingVertical: 8,
     backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 8, marginLeft: 4,
   },
   addPageText: { color: '#fff', fontSize: 12, fontWeight: '600' },
+  clearPageBtn: {
+    width: 36, height: 36, borderRadius: 8, justifyContent: 'center', alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.08)', marginLeft: 2,
+  },
   deletePageBtn: {
     width: 36, height: 36, borderRadius: 8, justifyContent: 'center', alignItems: 'center',
     backgroundColor: 'rgba(230,57,70,0.15)', marginLeft: 2,
   },
-  deletePageText: { fontSize: 16 },
 });

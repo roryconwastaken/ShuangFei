@@ -47,7 +47,7 @@ export default function NewDocument() {
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={() => router.back()}>
-            <Text style={styles.back}>- Back</Text>
+            <Text style={styles.back}>Back</Text>
           </TouchableOpacity>
           <Text style={styles.heading}>New Document</Text>
           <View style={{ width: 60 }} />
@@ -115,7 +115,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
   },
-  back: { color: '#e63946', fontSize: 15, fontWeight: '600', width: 60 },
+  back: { color: '#e63946', fontSize: 15, fontWeight: '600' },
   heading: { fontSize: 17, fontWeight: '700', color: '#1a1a2e' },
   body: { flex: 1, padding: 24, maxWidth: 600, width: '100%', alignSelf: 'center' },
   label: { fontSize: 13, fontWeight: '600', color: '#555', marginBottom: 8, marginTop: 20 },

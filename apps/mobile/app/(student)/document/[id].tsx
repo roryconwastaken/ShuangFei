@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import BKBCanvas from '../../../src/components/canvas/BKBCanvas';
@@ -27,6 +27,7 @@ export default function DocumentEditor() {
     pageNumber, pageCount, setPageCount,
     loadPage,
     handleStrokeEnd,
+    clearCurrentPage,
     undo, canUndo,
     redo, canRedo,
     addPage,
@@ -71,6 +72,30 @@ export default function DocumentEditor() {
     } else {
       await supabase.from('documents').update({ title: next }).eq('id', id);
     }
+  };
+
+  const handleClearPage = () => {
+    Alert.alert(
+      'Clear Page',
+      'Clear all your strokes on this page? This can be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Clear', style: 'destructive', onPress: clearCurrentPage },
+      ],
+    );
+  };
+
+  const handleDeletePage = () => {
+    // Block deletion if teacher has annotated this homework page
+    if (!isLocal && annotations.length > 0) {
+      Alert.alert(
+        'Cannot Delete Page',
+        'This page has teacher feedback. You can clear your strokes instead.',
+        [{ text: 'OK' }],
+      );
+      return;
+    }
+    deletePage(pageNumber);
   };
 
   const onStrokeEnd = (newStrokes: typeof strokes) => {
@@ -124,7 +149,8 @@ export default function DocumentEditor() {
         onAddPage={addPage}
         onPrevPage={() => pageNumber > 1 && goToPage(pageNumber - 1)}
         onNextPage={() => pageNumber < pageCount && goToPage(pageNumber + 1)}
-        onDeletePage={() => deletePage(pageNumber)}
+        onClearPage={handleClearPage}
+        onDeletePage={handleDeletePage}
         saving={saving}
         zoomLocked={zoomLocked}
         onZoomLockChange={setZoomLocked}

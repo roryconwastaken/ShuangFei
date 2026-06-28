@@ -13,7 +13,7 @@ export function useCanvas(documentId: string) {
   const [strokes, setStrokes] = useState<Stroke[]>([]);
   const [annotations, setAnnotations] = useState<Stroke[]>([]); // teacher's red annotations
   const [tool, setTool] = useState<'pen' | 'eraser'>('pen');
-  const [strokeWidth, setStrokeWidth] = useState(2);
+  const [strokeWidth, setStrokeWidth] = useState(4);
   const [pageNumber, setPageNumber] = useState(1);
   const [pageCount, setPageCount] = useState(1);
   const [canUndo, setCanUndo] = useState(false);
@@ -23,6 +23,7 @@ export function useCanvas(documentId: string) {
   const pageNumberRef  = useRef(1);
   const saveTimerRef   = useRef<ReturnType<typeof setTimeout> | null>(null);
   const annChannelRef  = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const docChannelRef  = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
   // History for undo/redo - refs so mutations don't trigger re-renders
   const historyRef = useRef<Stroke[][]>([]);
@@ -66,6 +67,24 @@ export function useCanvas(documentId: string) {
           .eq('page_id', data.id)
           .maybeSingle();
         setAnnotations(ann?.strokes ?? []);
+
+        // Subscribe to document page_count changes (teacher may add/delete pages)
+        if (docChannelRef.current) supabase.removeChannel(docChannelRef.current);
+        docChannelRef.current = supabase
+          .channel(`doc:${documentId}`)
+          .on('postgres_changes', {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'documents',
+            filter: `id=eq.${documentId}`,
+          }, payload => {
+            const newCount = (payload.new as any)?.page_count;
+            if (newCount != null) {
+              setPageCount(newCount);
+              if (pageNumberRef.current > newCount) loadPage(newCount);
+            }
+          })
+          .subscribe();
 
         // Subscribe to live annotation updates for this page
         if (annChannelRef.current) supabase.removeChannel(annChannelRef.current);
@@ -118,6 +137,17 @@ export function useCanvas(documentId: string) {
     setCanUndo(true);
     setCanRedo(false);
     scheduleSave(newStrokes);
+  }, [scheduleSave]);
+
+  const clearCurrentPage = useCallback(() => {
+    const cleared: Stroke[] = [];
+    historyRef.current = [...historyRef.current.slice(-49), currentStrokesRef.current];
+    redoRef.current = [];
+    currentStrokesRef.current = cleared;
+    setStrokes(cleared);
+    setCanUndo(true);
+    setCanRedo(false);
+    scheduleSave(cleared);
   }, [scheduleSave]);
 
   const undo = useCallback(() => {
@@ -222,6 +252,7 @@ export function useCanvas(documentId: string) {
     return () => {
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
       if (annChannelRef.current) supabase.removeChannel(annChannelRef.current);
+      if (docChannelRef.current) supabase.removeChannel(docChannelRef.current);
     };
   }, []);
 
@@ -237,6 +268,7 @@ export function useCanvas(documentId: string) {
     setPageCount,
     loadPage,
     handleStrokeEnd,
+    clearCurrentPage,
     undo,
     redo,
     canUndo,

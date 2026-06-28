@@ -15,6 +15,8 @@ export function useTeacherCanvas(documentId: string, teacherId: string) {
   const pageNumberRef        = useRef(1);
   const saveTimerRef         = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pageChannelRef       = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const docChannelRef        = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const studentStrokesRef    = useRef<Stroke[]>([]); // always in sync, used to guard deletePage
 
   const historyRef           = useRef<Stroke[][]>([]);
   const redoRef              = useRef<Stroke[][]>([]);
@@ -22,6 +24,7 @@ export function useTeacherCanvas(documentId: string, teacherId: string) {
 
   const loadPage = useCallback(async (pageNum: number) => {
     // Reset all page-specific state before loading to prevent stale refs
+    studentStrokesRef.current = [];
     setStrokes([]);
     setAnnotations([]);
     setPageNumber(pageNum);
@@ -44,7 +47,27 @@ export function useTeacherCanvas(documentId: string, teacherId: string) {
     if (!page) return;
 
     pageIdRef.current = page.id;
-    setStrokes(page.student_strokes ?? []);
+    const studentStrokes: Stroke[] = page.student_strokes ?? [];
+    studentStrokesRef.current = studentStrokes;
+    setStrokes(studentStrokes);
+
+    // Subscribe to document page_count changes (other sessions may add/delete pages)
+    if (docChannelRef.current) supabase.removeChannel(docChannelRef.current);
+    docChannelRef.current = supabase
+      .channel(`tdoc:${documentId}`)
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'documents',
+        filter: `id=eq.${documentId}`,
+      }, payload => {
+        const newCount = (payload.new as any)?.page_count;
+        if (newCount != null) {
+          setPageCount(newCount);
+          if (pageNumberRef.current > newCount) loadPage(newCount);
+        }
+      })
+      .subscribe();
 
     // Subscribe to live student stroke updates for this page
     if (pageChannelRef.current) supabase.removeChannel(pageChannelRef.current);
@@ -155,6 +178,9 @@ export function useTeacherCanvas(documentId: string, teacherId: string) {
   }, [documentId, pageCount, loadPage]);
 
   const deletePage = useCallback(async (pageNum: number) => {
+    // Never delete a page that contains student work
+    if (studentStrokesRef.current.length > 0) return;
+
     if (pageCount <= 1) {
       // Last page — just clear annotations, keep the page itself
       if (annotationRowIdRef.current) {
@@ -205,6 +231,7 @@ export function useTeacherCanvas(documentId: string, teacherId: string) {
     return () => {
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
       if (pageChannelRef.current) supabase.removeChannel(pageChannelRef.current);
+      if (docChannelRef.current) supabase.removeChannel(docChannelRef.current);
     };
   }, []);
 

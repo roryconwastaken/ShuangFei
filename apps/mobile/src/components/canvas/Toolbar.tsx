@@ -15,6 +15,7 @@ interface ToolbarProps {
   onAddPage?: () => void;
   onPrevPage?: () => void;
   onNextPage?: () => void;
+  onClearPage?: () => void;
   onDeletePage?: () => void;
   saving?: boolean;
   zoomLocked: boolean;
@@ -37,6 +38,7 @@ export default function Toolbar({
   onAddPage,
   onPrevPage,
   onNextPage,
+  onClearPage,
   onDeletePage,
   saving = false,
   zoomLocked,
@@ -150,6 +152,13 @@ export default function Toolbar({
         <TouchableOpacity style={styles.addPageBtn} onPress={onAddPage}>
           <MaterialCommunityIcons name="plus" size={16} color="#fff" />
           <Text style={styles.addPageText}>Page</Text>
+        </TouchableOpacity>
+      )}
+
+      {/* Clear page */}
+      {onClearPage && (
+        <TouchableOpacity style={styles.deletePageBtn} onPress={onClearPage}>
+          <MaterialCommunityIcons name="broom" size={18} color="rgba(255,255,255,0.7)" />
         </TouchableOpacity>
       )}
 
