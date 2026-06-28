@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
   FlatList, ActivityIndicator, Alert, Modal,
-  TextInput, KeyboardAvoidingView, Platform,
+  TextInput, KeyboardAvoidingView, Platform, RefreshControl,
 } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -22,6 +22,7 @@ export default function StudentHome() {
   const { profile, signOut } = useAuthStore();
   const [documents, setDocuments] = useState<DisplayDoc[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [teacherName, setTeacherName] = useState<string | null>(null);
 
   // Join class modal state
@@ -63,6 +64,12 @@ export default function StudentHome() {
   }, [profile?.id]);
 
   useFocusEffect(useCallback(() => { fetchDocuments(); }, [fetchDocuments]));
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await fetchDocuments();
+    setRefreshing(false);
+  }, [fetchDocuments]);
 
   const handleJoinClass = async () => {
     const code = classCode.trim().toUpperCase();
@@ -172,6 +179,7 @@ export default function StudentHome() {
           keyExtractor={d => d.id}
           contentContainerStyle={styles.list}
           numColumns={2}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#e63946']} tintColor="#e63946" />}
           renderItem={({ item }) => (
             <TouchableOpacity
               style={styles.card}

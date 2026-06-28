@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
-  FlatList, ActivityIndicator,
+  FlatList, ActivityIndicator, RefreshControl,
 } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -19,6 +19,7 @@ export default function TeacherHome() {
   const { profile, signOut } = useAuthStore();
   const [students, setStudents] = useState<StudentRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
   const fetchStudents = useCallback(async () => {
     setLoading(true);
@@ -39,6 +40,12 @@ export default function TeacherHome() {
   }, [profile?.id]);
 
   useFocusEffect(useCallback(() => { fetchStudents(); }, [fetchStudents]));
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await fetchStudents();
+    setRefreshing(false);
+  }, [fetchStudents]);
 
   const formatDate = (iso: string) =>
     new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
@@ -85,6 +92,7 @@ export default function TeacherHome() {
           data={students}
           keyExtractor={s => s.student_id}
           contentContainerStyle={styles.list}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#e63946']} tintColor="#e63946" />}
           renderItem={({ item }) => (
             <TouchableOpacity
               style={styles.card}

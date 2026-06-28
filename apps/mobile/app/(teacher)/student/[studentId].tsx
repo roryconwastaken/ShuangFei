@@ -1,9 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
-  FlatList, ActivityIndicator,
+  FlatList, ActivityIndicator, RefreshControl,
 } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase, Document } from '../../../src/lib/supabase';
 
@@ -13,25 +13,30 @@ export default function StudentHomework() {
   const [studentName, setStudentName] = useState('');
   const [documents, setDocuments] = useState<Document[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(() => {
-    const load = async () => {
-      const [profileRes, docsRes] = await Promise.all([
-        supabase.from('profiles').select('name').eq('id', studentId).maybeSingle(),
-        supabase
-          .from('documents')
-          .select('*')
-          .eq('owner_id', studentId)
-          .eq('type', 'homework')
-          .order('updated_at', { ascending: false }),
-      ]);
-
-      setStudentName(profileRes.data?.name ?? 'Student');
-      setDocuments(docsRes.data ?? []);
-      setLoading(false);
-    };
-    load();
+  const load = useCallback(async () => {
+    const [profileRes, docsRes] = await Promise.all([
+      supabase.from('profiles').select('name').eq('id', studentId).maybeSingle(),
+      supabase
+        .from('documents')
+        .select('*')
+        .eq('owner_id', studentId)
+        .eq('type', 'homework')
+        .order('updated_at', { ascending: false }),
+    ]);
+    setStudentName(profileRes.data?.name ?? 'Student');
+    setDocuments(docsRes.data ?? []);
+    setLoading(false);
   }, [studentId]);
+
+  useFocusEffect(useCallback(() => { load(); }, [load]));
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await load();
+    setRefreshing(false);
+  }, [load]);
 
   const formatDate = (iso: string) =>
     new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
@@ -63,6 +68,7 @@ export default function StudentHomework() {
           data={documents}
           keyExtractor={d => d.id}
           contentContainerStyle={styles.list}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#e63946']} tintColor="#e63946" />}
           renderItem={({ item }) => (
             <TouchableOpacity
               style={styles.card}
