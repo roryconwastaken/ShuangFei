@@ -24,6 +24,7 @@ export default function StudentHome() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [teacherName, setTeacherName] = useState<string | null>(null);
+  const [activeWhiteboard, setActiveWhiteboard] = useState<{ id: string; title: string } | null>(null);
 
   // Join class modal state
   const [joinVisible, setJoinVisible] = useState(false);
@@ -52,13 +53,25 @@ export default function StudentHome() {
 
     setDocuments(merged as DisplayDoc[]);
 
-    // Current teacher
+    // Current teacher + active whiteboard
     const { data: st } = await supabase
       .from('student_teacher')
-      .select('teacher:profiles!teacher_id(name)')
+      .select('teacher_id, teacher:profiles!teacher_id(name)')
       .eq('student_id', profile?.id)
       .maybeSingle();
     setTeacherName((st?.teacher as any)?.name ?? null);
+
+    if (st?.teacher_id) {
+      const { data: wb } = await supabase
+        .from('whiteboard_shares')
+        .select('document:documents(id, title)')
+        .eq('teacher_id', st.teacher_id)
+        .eq('is_active', true)
+        .maybeSingle();
+      setActiveWhiteboard((wb?.document as any) ?? null);
+    } else {
+      setActiveWhiteboard(null);
+    }
 
     setLoading(false);
   }, [profile?.id]);
@@ -154,6 +167,21 @@ export default function StudentHome() {
           <Text style={styles.signOutText}>Sign Out</Text>
         </TouchableOpacity>
       </View>
+
+      {/* Live whiteboard banner */}
+      {activeWhiteboard && (
+        <TouchableOpacity
+          style={styles.wbBanner}
+          onPress={() => router.push(`/(student)/whiteboard/${activeWhiteboard.id}`)}
+        >
+          <View style={styles.wbLiveDot} />
+          <View style={{ flex: 1 }}>
+            <Text style={styles.wbBannerLabel}>Live Whiteboard</Text>
+            <Text style={styles.wbBannerTitle} numberOfLines={1}>{activeWhiteboard.title}</Text>
+          </View>
+          <Text style={styles.wbBannerChevron}>›</Text>
+        </TouchableOpacity>
+      )}
 
       {/* New document button */}
       <TouchableOpacity
@@ -289,6 +317,17 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start', marginTop: 4,
   },
   signOutText: { color: '#fff', fontSize: 13, fontWeight: '600' },
+  wbBanner: {
+    flexDirection: 'row', alignItems: 'center',
+    marginHorizontal: 16, marginTop: 12, marginBottom: 0,
+    padding: 14, borderRadius: 12, gap: 10,
+    backgroundColor: '#fff0f0',
+    borderWidth: 1.5, borderColor: '#e63946',
+  },
+  wbLiveDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#e63946' },
+  wbBannerLabel: { fontSize: 10, fontWeight: '700', color: '#e63946', textTransform: 'uppercase', letterSpacing: 0.5 },
+  wbBannerTitle: { fontSize: 14, fontWeight: '700', color: '#1a1a2e', marginTop: 1 },
+  wbBannerChevron: { fontSize: 22, color: '#e63946' },
   newBtn: {
     flexDirection: 'row', alignItems: 'center',
     margin: 16, padding: 16, borderRadius: 12,

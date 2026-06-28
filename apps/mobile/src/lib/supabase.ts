@@ -64,6 +64,14 @@ export interface DocumentPage {
   updated_at: string;
 }
 
+export interface WhiteboardShare {
+  id: string;
+  document_id: string;
+  teacher_id: string;
+  is_active: boolean;
+  shared_at: string;
+}
+
 export interface TeacherAnnotation {
   id: string;
   page_id: string;

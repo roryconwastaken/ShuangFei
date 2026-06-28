@@ -26,6 +26,7 @@ interface BKBCanvasProps {
   strokes: Stroke[];
   annotations?: Stroke[];
   readOnly?: boolean;
+  showGrid?: boolean;
   // When true: drawing always produces red strokes routed to onAnnotationEnd,
   // not to onStrokeEnd. Used for teacher annotation mode.
   annotationMode?: boolean;
@@ -41,14 +42,15 @@ interface BKBCanvasProps {
 // The Group uses animatedTransform (a Reanimated derived value) so zoom/pan
 // updates bypass React entirely and render directly on the UI thread.
 const StaticLayer = React.memo(function StaticLayer({
-  width, height, strokes, annotations, gridPath, animatedTransform, buildPath,
+  width, height, strokes, annotations, showGrid, gridPath, animatedTransform, buildPath,
 }: {
   width: number;
   height: number;
   strokes: Stroke[];
   annotations: Stroke[];
+  showGrid: boolean;
   gridPath: SkPath;
-  animatedTransform: any; // DerivedValue<Transform[]>
+  animatedTransform: any;
   buildPath: (pts: StrokePoint[]) => SkPath;
 }) {
   return (
@@ -66,8 +68,7 @@ const StaticLayer = React.memo(function StaticLayer({
             strokeJoin="round"
           />
         ))}
-        {/* Grid drawn AFTER strokes so eraser can never visually remove grid lines */}
-        <Path path={gridPath} color={GRID_COLOR} style="stroke" strokeWidth={0.8} />
+        {showGrid && <Path path={gridPath} color={GRID_COLOR} style="stroke" strokeWidth={0.8} />}
         {annotations.map(s => (
           <Path
             key={s.id}
@@ -89,6 +90,7 @@ export default function BKBCanvas({
   strokes,
   annotations = [],
   readOnly = false,
+  showGrid = true,
   annotationMode = false,
   onAnnotationEnd,
   tool,
@@ -353,7 +355,7 @@ export default function BKBCanvas({
   const navGesture = Gesture.Simultaneous(pinchGesture, navPan);
 
   const gesture = readOnly
-    ? Gesture.Pan()
+    ? zoomLocked ? Gesture.Pan() : navGesture
     : zoomLocked
       ? drawGesture
       : Gesture.Simultaneous(drawGesture, navGesture);
@@ -376,6 +378,7 @@ export default function BKBCanvas({
               height={size.height}
               strokes={strokes}
               annotations={annotations}
+              showGrid={showGrid}
               gridPath={gridPath}
               animatedTransform={animatedTransform}
               buildPath={buildPath}
