@@ -1,5 +1,8 @@
-import { useEffect, useRef, useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Switch, Alert } from 'react-native';
+import { useEffect, useRef, useState, useCallback } from 'react';
+import {
+  View, Text, TextInput, TouchableOpacity, StyleSheet,
+  Switch, Alert, Modal, ScrollView, ActivityIndicator,
+} from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import WhiteboardCanvas from '../../../src/components/canvas/WhiteboardCanvas';
@@ -23,27 +26,32 @@ const eraserStyles = StyleSheet.create({
   bottom: { flex: 1, backgroundColor: '#fff' },
 });
 
+interface StudentAccess {
+  id: string;
+  name: string;
+  hasAccess: boolean;
+  shareRowId?: string;
+}
+
 export default function TeacherWhiteboard() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { profile } = useAuthStore();
+
   const [title, setTitle] = useState('');
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleDraft, setTitleDraft] = useState('');
-  const [zoomLocked, setZoomLocked] = useState(false); // unlocked by default
+  const [zoomLocked, setZoomLocked] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
+  const [students, setStudents] = useState<StudentAccess[]>([]);
+  const [studentsLoading, setStudentsLoading] = useState(false);
   const shareIdRef = useRef<string | null>(null);
 
   const {
-    strokes,
-    tool, setTool,
-    strokeWidth, setStrokeWidth,
-    loadPage,
-    handleStrokeEnd,
-    undo, canUndo,
-    redo, canRedo,
-    setPageCount,
+    strokes, tool, setTool, strokeWidth, setStrokeWidth,
+    loadPage, handleStrokeEnd, undo, canUndo, redo, canRedo, setPageCount,
   } = useCanvas(id);
 
   useEffect(() => {
@@ -66,12 +74,57 @@ export default function TeacherWhiteboard() {
     init();
   }, [id]);
 
-  const commitTitle = async () => {
-    setEditingTitle(false);
-    const next = titleDraft.trim();
-    if (!next || next === title) { setTitleDraft(title); return; }
-    setTitle(next);
-    await supabase.from('documents').update({ title: next }).eq('id', id);
+  const loadStudents = useCallback(async () => {
+    setStudentsLoading(true);
+    const [classRes, accessRes] = await Promise.all([
+      supabase
+        .from('student_teacher')
+        .select('student_id, student:profiles!student_id(name)')
+        .eq('teacher_id', profile?.id),
+      supabase
+        .from('whiteboard_student_shares')
+        .select('id, student_id')
+        .eq('document_id', id),
+    ]);
+
+    const accessMap = new Map(
+      (accessRes.data ?? []).map((r: any) => [r.student_id, r.id])
+    );
+
+    setStudents(
+      (classRes.data ?? []).map((row: any) => ({
+        id: row.student_id,
+        name: row.student?.name ?? 'Unknown',
+        hasAccess: accessMap.has(row.student_id),
+        shareRowId: accessMap.get(row.student_id),
+      }))
+    );
+    setStudentsLoading(false);
+  }, [id, profile?.id]);
+
+  const openShare = () => {
+    setShareOpen(true);
+    loadStudents();
+  };
+
+  const toggleStudentAccess = async (student: StudentAccess) => {
+    if (student.hasAccess) {
+      // Remove access
+      await supabase.from('whiteboard_student_shares').delete().eq('id', student.shareRowId!);
+      setStudents(prev => prev.map(s =>
+        s.id === student.id ? { ...s, hasAccess: false, shareRowId: undefined } : s
+      ));
+    } else {
+      // Grant access
+      const { data } = await supabase
+        .from('whiteboard_student_shares')
+        .insert({ document_id: id, student_id: student.id })
+        .select('id')
+        .single();
+      setStudents(prev => prev.map(s =>
+        s.id === student.id ? { ...s, hasAccess: true, shareRowId: data?.id } : s
+      ));
+    }
   };
 
   const toggleShare = async (value: boolean) => {
@@ -87,22 +140,25 @@ export default function TeacherWhiteboard() {
     }
   };
 
-  const confirmDelete = () => {
-    Alert.alert(
-      'Delete Whiteboard',
-      `Delete "${title}"? This cannot be undone.`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Delete', style: 'destructive', onPress: deleteWhiteboard },
-      ],
-    );
+  const commitTitle = async () => {
+    setEditingTitle(false);
+    const next = titleDraft.trim();
+    if (!next || next === title) { setTitleDraft(title); return; }
+    setTitle(next);
+    await supabase.from('documents').update({ title: next }).eq('id', id);
   };
 
-  const deleteWhiteboard = async () => {
-    // Delete share first (FK may not cascade), then document (cascades to pages)
-    await supabase.from('whiteboard_shares').delete().eq('document_id', id);
-    await supabase.from('documents').delete().eq('id', id);
-    router.back();
+  const confirmDelete = () => {
+    Alert.alert('Delete Whiteboard', `Delete "${title}"? This cannot be undone.`, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete', style: 'destructive', onPress: async () => {
+          await supabase.from('whiteboard_shares').delete().eq('document_id', id);
+          await supabase.from('documents').delete().eq('id', id);
+          router.back();
+        },
+      },
+    ]);
   };
 
   const onStrokeEnd = (newStrokes: typeof strokes) => {
@@ -110,6 +166,8 @@ export default function TeacherWhiteboard() {
     handleStrokeEnd(newStrokes);
     setTimeout(() => setSaving(false), 2000);
   };
+
+  const accessCount = students.filter(s => s.hasAccess).length;
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right', 'bottom']}>
@@ -125,9 +183,7 @@ export default function TeacherWhiteboard() {
             onChangeText={setTitleDraft}
             onBlur={commitTitle}
             onSubmitEditing={commitTitle}
-            autoFocus
-            returnKeyType="done"
-            selectTextOnFocus
+            autoFocus returnKeyType="done" selectTextOnFocus
             style={styles.titleInput}
           />
         ) : (
@@ -136,27 +192,19 @@ export default function TeacherWhiteboard() {
           </TouchableOpacity>
         )}
 
-        <View style={styles.headerRight}>
-          <Text style={[styles.shareLabel, isSharing && styles.shareLabelActive]}>
-            {isSharing ? 'Live' : 'Off'}
-          </Text>
-          <Switch
-            value={isSharing}
-            onValueChange={toggleShare}
-            trackColor={{ false: 'rgba(255,255,255,0.2)', true: '#e63946' }}
-            thumbColor="#fff"
-          />
-        </View>
+        <TouchableOpacity style={styles.shareBtn} onPress={openShare}>
+          <Text style={styles.shareBtnIcon}>👥</Text>
+          {accessCount > 0 && (
+            <View style={styles.shareBadge}><Text style={styles.shareBadgeText}>{accessCount}</Text></View>
+          )}
+        </TouchableOpacity>
       </View>
 
       {/* Toolbar */}
       <View style={styles.toolbar}>
-        {/* Pen */}
         <TouchableOpacity style={[styles.btn, tool === 'pen' && styles.btnActive]} onPress={() => setTool('pen')}>
           <Text style={styles.btnIcon}>✏️</Text>
         </TouchableOpacity>
-
-        {/* Eraser */}
         <TouchableOpacity style={[styles.btn, tool === 'eraser' && styles.btnActive]} onPress={() => setTool('eraser')}>
           <EraserIcon />
         </TouchableOpacity>
@@ -164,11 +212,7 @@ export default function TeacherWhiteboard() {
         <View style={styles.divider} />
 
         {WIDTHS.map(w => (
-          <TouchableOpacity
-            key={w}
-            style={[styles.widthBtn, strokeWidth === w && styles.widthBtnActive]}
-            onPress={() => setStrokeWidth(w)}
-          >
+          <TouchableOpacity key={w} style={[styles.widthBtn, strokeWidth === w && styles.widthBtnActive]} onPress={() => setStrokeWidth(w)}>
             <View style={{ width: w * 2.5, height: w * 2.5, borderRadius: w * 2.5, backgroundColor: '#fff' }} />
           </TouchableOpacity>
         ))}
@@ -184,18 +228,14 @@ export default function TeacherWhiteboard() {
 
         <View style={styles.divider} />
 
-        {/* Lock — freezes current position, doesn't reset */}
         <TouchableOpacity style={[styles.btn, zoomLocked && styles.btnActive]} onPress={() => setZoomLocked(v => !v)}>
           <Text style={styles.btnIcon}>{zoomLocked ? '🔒' : '🔓'}</Text>
         </TouchableOpacity>
 
         <View style={{ flex: 1 }} />
-
         <Text style={styles.saveStatus}>{saving ? 'Saving...' : 'Saved ✓'}</Text>
-
         <View style={styles.divider} />
 
-        {/* Delete */}
         <TouchableOpacity style={styles.deleteBtn} onPress={confirmDelete}>
           <Text style={styles.btnIcon}>🗑</Text>
         </TouchableOpacity>
@@ -208,6 +248,69 @@ export default function TeacherWhiteboard() {
         zoomLocked={zoomLocked}
         onStrokeEnd={onStrokeEnd}
       />
+
+      {/* Share panel */}
+      <Modal visible={shareOpen} animationType="slide" transparent onRequestClose={() => setShareOpen(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.sharePanel}>
+            {/* Handle */}
+            <View style={styles.panelHandle} />
+
+            <View style={styles.panelHeader}>
+              <Text style={styles.panelTitle}>Share Whiteboard</Text>
+              <TouchableOpacity onPress={() => setShareOpen(false)}>
+                <Text style={styles.panelClose}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Go Live toggle */}
+            <View style={styles.liveRow}>
+              <View>
+                <Text style={styles.liveLabel}>Go Live</Text>
+                <Text style={styles.liveDesc}>
+                  {isSharing ? 'Students with access can see this whiteboard now' : 'Not broadcasting yet'}
+                </Text>
+              </View>
+              <Switch
+                value={isSharing}
+                onValueChange={toggleShare}
+                trackColor={{ false: '#e0e0e0', true: '#e63946' }}
+                thumbColor="#fff"
+              />
+            </View>
+
+            <View style={styles.panelDivider} />
+
+            <Text style={styles.panelSectionTitle}>
+              Students with access {accessCount > 0 && `(${accessCount})`}
+            </Text>
+
+            {studentsLoading ? (
+              <ActivityIndicator color="#e63946" style={{ marginVertical: 20 }} />
+            ) : students.length === 0 ? (
+              <Text style={styles.noStudentsText}>No students in your class yet.</Text>
+            ) : (
+              <ScrollView style={styles.studentScroll} showsVerticalScrollIndicator={false}>
+                {students.map(s => (
+                  <TouchableOpacity
+                    key={s.id}
+                    style={styles.studentRow}
+                    onPress={() => toggleStudentAccess(s)}
+                  >
+                    <View style={styles.studentAvatar}>
+                      <Text style={styles.studentAvatarText}>{s.name.charAt(0).toUpperCase()}</Text>
+                    </View>
+                    <Text style={styles.studentName}>{s.name}</Text>
+                    <View style={[styles.accessCheck, s.hasAccess && styles.accessCheckOn]}>
+                      {s.hasAccess && <Text style={styles.accessCheckMark}>✓</Text>}
+                    </View>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            )}
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -226,9 +329,14 @@ const styles = StyleSheet.create({
     flex: 1, color: '#fff', fontSize: 15, fontWeight: '700', textAlign: 'center',
     borderBottomWidth: 1, borderBottomColor: '#e63946', paddingVertical: 2,
   },
-  headerRight: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  shareLabel: { color: 'rgba(255,255,255,0.4)', fontSize: 12, fontWeight: '600' },
-  shareLabelActive: { color: '#e63946' },
+  shareBtn: { width: 44, height: 44, justifyContent: 'center', alignItems: 'center' },
+  shareBtnIcon: { fontSize: 22 },
+  shareBadge: {
+    position: 'absolute', top: 4, right: 4,
+    backgroundColor: '#e63946', borderRadius: 8,
+    paddingHorizontal: 5, paddingVertical: 1, minWidth: 16, alignItems: 'center',
+  },
+  shareBadgeText: { color: '#fff', fontSize: 10, fontWeight: '700' },
   toolbar: {
     flexDirection: 'row', alignItems: 'center',
     backgroundColor: '#1a1a2e', paddingHorizontal: 12, paddingVertical: 8, gap: 4,
@@ -242,8 +350,29 @@ const styles = StyleSheet.create({
   widthBtnActive: { backgroundColor: 'rgba(255,255,255,0.15)' },
   divider: { width: 1, height: 28, backgroundColor: 'rgba(255,255,255,0.15)', marginHorizontal: 4 },
   saveStatus: { color: 'rgba(255,255,255,0.5)', fontSize: 11, marginHorizontal: 4 },
-  deleteBtn: {
-    width: 36, height: 36, borderRadius: 8, justifyContent: 'center', alignItems: 'center',
-    backgroundColor: 'rgba(230,57,70,0.15)',
+  deleteBtn: { width: 36, height: 36, borderRadius: 8, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(230,57,70,0.15)' },
+  // Share panel
+  modalOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.4)' },
+  sharePanel: {
+    backgroundColor: '#fff', borderTopLeftRadius: 20, borderTopRightRadius: 20,
+    paddingHorizontal: 24, paddingBottom: 40, maxHeight: '75%',
   },
+  panelHandle: { width: 36, height: 4, borderRadius: 2, backgroundColor: '#ddd', alignSelf: 'center', marginTop: 12, marginBottom: 8 },
+  panelHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 12 },
+  panelTitle: { fontSize: 17, fontWeight: '700', color: '#1a1a2e' },
+  panelClose: { fontSize: 18, color: '#aaa', padding: 4 },
+  liveRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 16 },
+  liveLabel: { fontSize: 15, fontWeight: '700', color: '#1a1a2e' },
+  liveDesc: { fontSize: 12, color: '#aaa', marginTop: 2, maxWidth: 260 },
+  panelDivider: { height: 1, backgroundColor: '#f0f0f0', marginVertical: 8 },
+  panelSectionTitle: { fontSize: 13, fontWeight: '600', color: '#555', marginBottom: 12, marginTop: 4 },
+  noStudentsText: { color: '#aaa', fontSize: 14, textAlign: 'center', marginVertical: 20 },
+  studentScroll: { maxHeight: 320 },
+  studentRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, gap: 12 },
+  studentAvatar: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#e63946', justifyContent: 'center', alignItems: 'center' },
+  studentAvatarText: { color: '#fff', fontSize: 15, fontWeight: '700' },
+  studentName: { flex: 1, fontSize: 15, fontWeight: '600', color: '#1a1a2e' },
+  accessCheck: { width: 24, height: 24, borderRadius: 6, borderWidth: 1.5, borderColor: '#ccc', justifyContent: 'center', alignItems: 'center' },
+  accessCheckOn: { backgroundColor: '#e63946', borderColor: '#e63946' },
+  accessCheckMark: { color: '#fff', fontSize: 13, fontWeight: '700' },
 });

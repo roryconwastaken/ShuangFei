@@ -72,6 +72,13 @@ export interface WhiteboardShare {
   shared_at: string;
 }
 
+export interface WhiteboardStudentShare {
+  id: string;
+  document_id: string;
+  student_id: string;
+  added_at: string;
+}
+
 export interface TeacherAnnotation {
   id: string;
   page_id: string;

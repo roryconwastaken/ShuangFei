@@ -61,17 +61,15 @@ export default function StudentHome() {
       .maybeSingle();
     setTeacherName((st?.teacher as any)?.name ?? null);
 
-    if (st?.teacher_id) {
-      const { data: wb } = await supabase
-        .from('whiteboard_shares')
-        .select('document:documents(id, title)')
-        .eq('teacher_id', st.teacher_id)
-        .eq('is_active', true)
-        .maybeSingle();
-      setActiveWhiteboard((wb?.document as any) ?? null);
-    } else {
-      setActiveWhiteboard(null);
-    }
+    // Find an active whiteboard the student has been specifically granted access to
+    const { data: wb } = await supabase
+      .from('whiteboard_student_shares')
+      .select('document:documents(id, title, whiteboard_shares(is_active))')
+      .eq('student_id', profile?.id)
+      .maybeSingle();
+    const doc = (wb?.document as any);
+    const live = doc?.whiteboard_shares?.[0]?.is_active === true;
+    setActiveWhiteboard(live ? { id: doc.id, title: doc.title } : null);
 
     setLoading(false);
   }, [profile?.id]);

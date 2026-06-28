@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
-  FlatList, ActivityIndicator, RefreshControl,
+  FlatList, ActivityIndicator, RefreshControl, Alert,
 } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -69,6 +69,23 @@ export default function TeacherHome() {
     setRefreshing(false);
   }, [fetchData]);
 
+  const confirmDeleteWhiteboard = (wb: WhiteboardRow) => {
+    Alert.alert(
+      'Delete Whiteboard',
+      `Delete "${wb.title}"? This cannot be undone.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete', style: 'destructive', onPress: async () => {
+            await supabase.from('whiteboard_shares').delete().eq('document_id', wb.id);
+            await supabase.from('documents').delete().eq('id', wb.id);
+            fetchData();
+          },
+        },
+      ],
+    );
+  };
+
   const formatDate = (iso: string) =>
     new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 
@@ -92,6 +109,8 @@ export default function TeacherHome() {
             key={wb.id}
             style={styles.wbCard}
             onPress={() => router.push(`/(teacher)/whiteboard/${wb.id}`)}
+            onLongPress={() => confirmDeleteWhiteboard(wb)}
+            delayLongPress={500}
           >
             <Text style={styles.wbIcon}>📋</Text>
             <View style={styles.wbInfo}>
