@@ -14,6 +14,7 @@ export function useTeacherCanvas(documentId: string, teacherId: string) {
   const annotationRowIdRef   = useRef<string | null>(null);
   const pageNumberRef        = useRef(1);
   const saveTimerRef         = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pageChannelRef       = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
   const historyRef           = useRef<Stroke[][]>([]);
   const redoRef              = useRef<Stroke[][]>([]);
@@ -44,6 +45,20 @@ export function useTeacherCanvas(documentId: string, teacherId: string) {
 
     pageIdRef.current = page.id;
     setStrokes(page.student_strokes ?? []);
+
+    // Subscribe to live student stroke updates for this page
+    if (pageChannelRef.current) supabase.removeChannel(pageChannelRef.current);
+    pageChannelRef.current = supabase
+      .channel(`page:${page.id}`)
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'document_pages',
+        filter: `id=eq.${page.id}`,
+      }, payload => {
+        setStrokes((payload.new as any)?.student_strokes ?? []);
+      })
+      .subscribe();
 
     const { data: ann } = await supabase
       .from('teacher_annotations')
@@ -189,6 +204,7 @@ export function useTeacherCanvas(documentId: string, teacherId: string) {
   useEffect(() => {
     return () => {
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+      if (pageChannelRef.current) supabase.removeChannel(pageChannelRef.current);
     };
   }, []);
 

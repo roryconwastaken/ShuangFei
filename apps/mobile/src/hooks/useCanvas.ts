@@ -19,9 +19,10 @@ export function useCanvas(documentId: string) {
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);
 
-  const pageIdRef = useRef<string | null>(null);
-  const pageNumberRef = useRef(1);
-  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pageIdRef      = useRef<string | null>(null);
+  const pageNumberRef  = useRef(1);
+  const saveTimerRef   = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const annChannelRef  = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
   // History for undo/redo - refs so mutations don't trigger re-renders
   const historyRef = useRef<Stroke[][]>([]);
@@ -65,6 +66,20 @@ export function useCanvas(documentId: string) {
           .eq('page_id', data.id)
           .maybeSingle();
         setAnnotations(ann?.strokes ?? []);
+
+        // Subscribe to live annotation updates for this page
+        if (annChannelRef.current) supabase.removeChannel(annChannelRef.current);
+        annChannelRef.current = supabase
+          .channel(`ann:${data.id}`)
+          .on('postgres_changes', {
+            event: '*',
+            schema: 'public',
+            table: 'teacher_annotations',
+            filter: `page_id=eq.${data.id}`,
+          }, payload => {
+            setAnnotations((payload.new as any)?.strokes ?? []);
+          })
+          .subscribe();
       } else {
         const { data: newPage } = await supabase
           .from('document_pages')
@@ -206,6 +221,7 @@ export function useCanvas(documentId: string) {
   useEffect(() => {
     return () => {
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+      if (annChannelRef.current) supabase.removeChannel(annChannelRef.current);
     };
   }, []);
 
