@@ -114,7 +114,7 @@ export default function TeacherDocument() {
             style={[styles.widthBtn, strokeWidth === w && styles.widthBtnActive]}
             onPress={() => setStrokeWidth(w)}
           >
-            <View style={{ width: w * 2.5, height: w * 2.5, borderRadius: w * 2.5, backgroundColor: '#e63946' }} />
+            <View style={{ width: w * 2.5, height: w * 2.5, borderRadius: w * 2.5, backgroundColor: '#8B1A1A' }} />
           </TouchableOpacity>
         ))}
 
@@ -178,7 +178,7 @@ export default function TeacherDocument() {
 
         {/* Delete page */}
         <TouchableOpacity style={styles.deletePageBtn} onPress={confirmDeletePage}>
-          <MaterialCommunityIcons name="trash-can-outline" size={18} color="#e63946" />
+          <MaterialCommunityIcons name="trash-can-outline" size={18} color="rgba(255,255,255,0.7)" />
         </TouchableOpacity>
       </View>
 
@@ -200,20 +200,20 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 16, paddingVertical: 12, backgroundColor: '#1a1a2e',
+    paddingHorizontal: 16, paddingVertical: 12, backgroundColor: '#2A1515',
   },
   backBtn: { width: 60 },
-  backText: { color: '#e63946', fontSize: 15, fontWeight: '600' },
+  backText: { color: '#8B1A1A', fontSize: 15, fontWeight: '600' },
   title: {
     flex: 1, textAlign: 'center', color: '#fff',
     fontSize: 16, fontWeight: '700', marginHorizontal: 8,
   },
   toolbar: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: '#1a1a2e', paddingHorizontal: 12, paddingVertical: 8, gap: 4,
+    backgroundColor: '#2A1515', paddingHorizontal: 12, paddingVertical: 8, gap: 4,
   },
   btn: { width: 40, height: 40, borderRadius: 8, justifyContent: 'center', alignItems: 'center' },
-  btnActive: { backgroundColor: '#e63946' },
+  btnActive: { backgroundColor: '#8B1A1A' },
   btnDisabled: { opacity: 0.3 },
   btnIcon: { fontSize: 18, color: '#fff' },
   iconDisabled: { opacity: 0.4 },
@@ -234,6 +234,6 @@ const styles = StyleSheet.create({
   },
   deletePageBtn: {
     width: 36, height: 36, borderRadius: 8, justifyContent: 'center', alignItems: 'center',
-    backgroundColor: 'rgba(230,57,70,0.15)', marginLeft: 2,
+    backgroundColor: 'rgba(255,255,255,0.08)', marginLeft: 2,
   },
 });

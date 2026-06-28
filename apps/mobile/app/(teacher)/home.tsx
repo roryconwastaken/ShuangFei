@@ -155,14 +155,14 @@ export default function TeacherHome() {
       )}
 
       {loading ? (
-        <ActivityIndicator style={{ marginTop: 40 }} color="#e63946" size="large" />
+        <ActivityIndicator style={{ marginTop: 40 }} color="#8B1A1A" size="large" />
       ) : (
         <FlatList
           data={students}
           keyExtractor={s => s.student_id}
           contentContainerStyle={styles.list}
           ListHeaderComponent={<ListHeader />}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#e63946']} tintColor="#e63946" />}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#8B1A1A']} tintColor="#8B1A1A" />}
           ListEmptyComponent={
             <View style={styles.empty}>
               <Text style={styles.emptyIcon}>👥</Text>
@@ -192,10 +192,10 @@ export default function TeacherHome() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f0f4f8' },
+  container: { flex: 1, backgroundColor: '#FDFBF8' },
   header: {
     flexDirection: 'row', alignItems: 'flex-start',
-    backgroundColor: '#1a1a2e', paddingHorizontal: 24, paddingVertical: 20, gap: 12,
+    backgroundColor: '#2A1515', paddingHorizontal: 24, paddingVertical: 20, gap: 12,
   },
   greeting: { color: 'rgba(255,255,255,0.6)', fontSize: 13 },
   name: { color: '#fff', fontSize: 20, fontWeight: '700', marginTop: 2 },
@@ -207,23 +207,23 @@ const styles = StyleSheet.create({
   signOutText: { color: '#fff', fontSize: 13, fontWeight: '600' },
   codeBar: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: '#1a1a2e', paddingHorizontal: 24, paddingBottom: 16, gap: 10,
+    backgroundColor: '#2A1515', paddingHorizontal: 24, paddingBottom: 16, gap: 10,
   },
   codeLabel: { color: 'rgba(255,255,255,0.5)', fontSize: 12, fontWeight: '600' },
-  code: { fontSize: 22, fontWeight: '800', color: '#e63946', letterSpacing: 4 },
+  code: { fontSize: 22, fontWeight: '800', color: '#fff', letterSpacing: 4 },
   codeHint: { color: 'rgba(255,255,255,0.35)', fontSize: 11 },
   sectionHeader: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: 20, paddingTop: 20, paddingBottom: 8,
   },
-  sectionTitle: { fontSize: 15, fontWeight: '700', color: '#1a1a2e' },
+  sectionTitle: { fontSize: 15, fontWeight: '700', color: '#2A1515' },
   sectionCount: {
-    fontSize: 12, fontWeight: '700', color: '#e63946',
+    fontSize: 12, fontWeight: '700', color: '#8B1A1A',
     backgroundColor: '#fff0f0', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10,
   },
   newWbBtn: {
     paddingHorizontal: 12, paddingVertical: 4,
-    backgroundColor: '#e63946', borderRadius: 8,
+    backgroundColor: '#8B1A1A', borderRadius: 8,
   },
   newWbText: { color: '#fff', fontSize: 12, fontWeight: '700' },
   wbEmpty: { marginHorizontal: 16, marginBottom: 4 },
@@ -237,7 +237,7 @@ const styles = StyleSheet.create({
   },
   wbIcon: { fontSize: 22 },
   wbInfo: { flex: 1 },
-  wbTitle: { fontSize: 14, fontWeight: '700', color: '#1a1a2e' },
+  wbTitle: { fontSize: 14, fontWeight: '700', color: '#2A1515' },
   wbDate: { fontSize: 11, color: '#aaa', marginTop: 2 },
   wbBadge: {
     paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8,
@@ -245,7 +245,7 @@ const styles = StyleSheet.create({
   },
   wbBadgeLive: { backgroundColor: '#fff0f0' },
   wbBadgeText: { fontSize: 11, fontWeight: '700', color: '#aaa' },
-  wbBadgeTextLive: { color: '#e63946' },
+  wbBadgeTextLive: { color: '#8B1A1A' },
   list: { paddingHorizontal: 0, paddingBottom: 16 },
   card: {
     flexDirection: 'row', alignItems: 'center',
@@ -256,11 +256,11 @@ const styles = StyleSheet.create({
   },
   avatar: {
     width: 44, height: 44, borderRadius: 22,
-    backgroundColor: '#e63946', justifyContent: 'center', alignItems: 'center',
+    backgroundColor: '#8B1A1A', justifyContent: 'center', alignItems: 'center',
   },
   avatarText: { color: '#fff', fontSize: 18, fontWeight: '700' },
   cardInfo: { flex: 1 },
-  cardName: { fontSize: 16, fontWeight: '700', color: '#1a1a2e' },
+  cardName: { fontSize: 16, fontWeight: '700', color: '#2A1515' },
   cardDate: { fontSize: 12, color: '#aaa', marginTop: 2 },
   chevron: { fontSize: 22, color: '#ccc' },
   empty: { alignItems: 'center', gap: 8, paddingVertical: 24 },

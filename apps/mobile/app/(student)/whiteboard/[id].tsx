@@ -67,13 +67,13 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    backgroundColor: '#1a1a2e', paddingHorizontal: 16, paddingVertical: 12,
+    backgroundColor: '#2A1515', paddingHorizontal: 16, paddingVertical: 12,
   },
   backBtn: { width: 60 },
-  backText: { color: '#e63946', fontSize: 15, fontWeight: '600' },
+  backText: { color: '#8B1A1A', fontSize: 15, fontWeight: '600' },
   titleRow: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
-  liveDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#e63946' },
+  liveDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#8B1A1A' },
   title: { color: '#fff', fontSize: 16, fontWeight: '700' },
   lockBtn: { width: 40, height: 40, borderRadius: 8, justifyContent: 'center', alignItems: 'center' },
-  lockBtnActive: { backgroundColor: '#e63946' },
+  lockBtnActive: { backgroundColor: '#8B1A1A' },
 });

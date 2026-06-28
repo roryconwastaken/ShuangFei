@@ -12,7 +12,7 @@ import { useAuthStore } from '../../../src/stores/authStore';
 import { supabase } from '../../../src/lib/supabase';
 
 const WIDTHS  = [2, 4, 8];
-const COLORS  = ['#1a1a1a', '#e63946', '#2563eb', '#16a34a', '#f97316', '#9333ea'];
+const COLORS  = ['#1a1a1a', '#8B1A1A', '#2563eb', '#16a34a', '#f97316', '#9333ea'];
 
 interface StudentAccess {
   id: string;
@@ -241,7 +241,7 @@ export default function TeacherWhiteboard() {
 
         {/* Delete whiteboard */}
         <TouchableOpacity style={styles.deleteBtn} onPress={confirmDelete}>
-          <MaterialCommunityIcons name="trash-can-outline" size={18} color="#e63946" />
+          <MaterialCommunityIcons name="trash-can-outline" size={18} color="rgba(255,255,255,0.7)" />
         </TouchableOpacity>
       </View>
 
@@ -279,7 +279,7 @@ export default function TeacherWhiteboard() {
               <Switch
                 value={isSharing}
                 onValueChange={toggleShare}
-                trackColor={{ false: '#e0e0e0', true: '#e63946' }}
+                trackColor={{ false: '#e0e0e0', true: '#8B1A1A' }}
                 thumbColor="#fff"
               />
             </View>
@@ -291,7 +291,7 @@ export default function TeacherWhiteboard() {
             </Text>
 
             {studentsLoading ? (
-              <ActivityIndicator color="#e63946" style={{ marginVertical: 20 }} />
+              <ActivityIndicator color="#8B1A1A" style={{ marginVertical: 20 }} />
             ) : students.length === 0 ? (
               <Text style={styles.noStudentsText}>No students in your class yet.</Text>
             ) : (
@@ -324,29 +324,29 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
   header: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: '#1a1a2e', paddingHorizontal: 16, paddingVertical: 10, gap: 8,
+    backgroundColor: '#2A1515', paddingHorizontal: 16, paddingVertical: 10, gap: 8,
   },
   backBtn: { width: 50 },
-  backText: { color: '#e63946', fontSize: 15, fontWeight: '600' },
+  backText: { color: '#8B1A1A', fontSize: 15, fontWeight: '600' },
   titleBtn: { flex: 1, alignItems: 'center' },
   title: { color: '#fff', fontSize: 15, fontWeight: '700', textAlign: 'center' },
   titleInput: {
     flex: 1, color: '#fff', fontSize: 15, fontWeight: '700', textAlign: 'center',
-    borderBottomWidth: 1, borderBottomColor: '#e63946', paddingVertical: 2,
+    borderBottomWidth: 1, borderBottomColor: '#8B1A1A', paddingVertical: 2,
   },
   shareBtn: { width: 44, height: 44, justifyContent: 'center', alignItems: 'center' },
   liveDot: {
     position: 'absolute', top: 6, right: 6,
     width: 8, height: 8, borderRadius: 4,
-    backgroundColor: '#e63946',
-    borderWidth: 1.5, borderColor: '#1a1a2e',
+    backgroundColor: '#8B1A1A',
+    borderWidth: 1.5, borderColor: '#2A1515',
   },
   toolbar: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: '#1a1a2e', paddingHorizontal: 12, paddingVertical: 8, gap: 4,
+    backgroundColor: '#2A1515', paddingHorizontal: 12, paddingVertical: 8, gap: 4,
   },
   btn: { width: 40, height: 40, borderRadius: 8, justifyContent: 'center', alignItems: 'center' },
-  btnActive: { backgroundColor: '#e63946' },
+  btnActive: { backgroundColor: '#8B1A1A' },
   btnDisabled: { opacity: 0.3 },
   btnIcon: { fontSize: 18, color: '#fff' },
   iconDisabled: { opacity: 0.4 },
@@ -355,7 +355,7 @@ const styles = StyleSheet.create({
   divider: { width: 1, height: 28, backgroundColor: 'rgba(255,255,255,0.15)', marginHorizontal: 4 },
   saveStatus: { color: 'rgba(255,255,255,0.5)', fontSize: 11, marginHorizontal: 4 },
   clearBtn: { width: 36, height: 36, borderRadius: 8, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.08)', marginLeft: 2 },
-  deleteBtn: { width: 36, height: 36, borderRadius: 8, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(230,57,70,0.15)', marginLeft: 2 },
+  deleteBtn: { width: 36, height: 36, borderRadius: 8, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.08)', marginLeft: 2 },
   colorBtn: { width: 30, height: 30, justifyContent: 'center', alignItems: 'center' },
   colorDot: { width: 18, height: 18, borderRadius: 9 },
   colorDotActive: { width: 22, height: 22, borderRadius: 11, borderWidth: 2, borderColor: '#fff' },
@@ -367,20 +367,20 @@ const styles = StyleSheet.create({
   },
   panelHandle: { width: 36, height: 4, borderRadius: 2, backgroundColor: '#ddd', alignSelf: 'center', marginTop: 12, marginBottom: 8 },
   panelHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 12 },
-  panelTitle: { fontSize: 17, fontWeight: '700', color: '#1a1a2e' },
+  panelTitle: { fontSize: 17, fontWeight: '700', color: '#2A1515' },
   panelClose: { fontSize: 18, color: '#aaa', padding: 4 },
   liveRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 16 },
-  liveLabel: { fontSize: 15, fontWeight: '700', color: '#1a1a2e' },
+  liveLabel: { fontSize: 15, fontWeight: '700', color: '#2A1515' },
   liveDesc: { fontSize: 12, color: '#aaa', marginTop: 2, maxWidth: 260 },
   panelDivider: { height: 1, backgroundColor: '#f0f0f0', marginVertical: 8 },
   panelSectionTitle: { fontSize: 13, fontWeight: '600', color: '#555', marginBottom: 12, marginTop: 4 },
   noStudentsText: { color: '#aaa', fontSize: 14, textAlign: 'center', marginVertical: 20 },
   studentScroll: { maxHeight: 320 },
   studentRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, gap: 12 },
-  studentAvatar: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#e63946', justifyContent: 'center', alignItems: 'center' },
+  studentAvatar: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#8B1A1A', justifyContent: 'center', alignItems: 'center' },
   studentAvatarText: { color: '#fff', fontSize: 15, fontWeight: '700' },
-  studentName: { flex: 1, fontSize: 15, fontWeight: '600', color: '#1a1a2e' },
+  studentName: { flex: 1, fontSize: 15, fontWeight: '600', color: '#2A1515' },
   accessCheck: { width: 24, height: 24, borderRadius: 6, borderWidth: 1.5, borderColor: '#ccc', justifyContent: 'center', alignItems: 'center' },
-  accessCheckOn: { backgroundColor: '#e63946', borderColor: '#e63946' },
+  accessCheckOn: { backgroundColor: '#8B1A1A', borderColor: '#8B1A1A' },
   accessCheckMark: { color: '#fff', fontSize: 13, fontWeight: '700' },
 });

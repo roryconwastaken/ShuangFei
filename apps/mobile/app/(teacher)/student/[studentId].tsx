@@ -57,7 +57,7 @@ export default function StudentHomework() {
       </View>
 
       {loading ? (
-        <ActivityIndicator style={{ marginTop: 40 }} color="#e63946" size="large" />
+        <ActivityIndicator style={{ marginTop: 40 }} color="#8B1A1A" size="large" />
       ) : documents.length === 0 ? (
         <View style={styles.empty}>
           <Text style={styles.emptyIcon}>📭</Text>
@@ -68,7 +68,7 @@ export default function StudentHomework() {
           data={documents}
           keyExtractor={d => d.id}
           contentContainerStyle={styles.list}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#e63946']} tintColor="#e63946" />}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#8B1A1A']} tintColor="#8B1A1A" />}
           renderItem={({ item }) => (
             <TouchableOpacity
               style={styles.card}
@@ -93,17 +93,17 @@ export default function StudentHomework() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f0f4f8' },
+  container: { flex: 1, backgroundColor: '#FDFBF8' },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#1a1a2e',
+    backgroundColor: '#2A1515',
     paddingHorizontal: 16,
     paddingVertical: 12,
   },
   backBtn: { width: 60 },
-  backText: { color: '#e63946', fontSize: 15, fontWeight: '600' },
+  backText: { color: '#8B1A1A', fontSize: 15, fontWeight: '600' },
   title: {
     flex: 1, textAlign: 'center',
     color: '#fff', fontSize: 16, fontWeight: '700',
@@ -113,9 +113,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center',
     paddingHorizontal: 20, paddingTop: 20, paddingBottom: 8, gap: 8,
   },
-  sectionTitle: { fontSize: 15, fontWeight: '700', color: '#1a1a2e' },
+  sectionTitle: { fontSize: 15, fontWeight: '700', color: '#2A1515' },
   sectionCount: {
-    fontSize: 12, fontWeight: '700', color: '#e63946',
+    fontSize: 12, fontWeight: '700', color: '#8B1A1A',
     backgroundColor: '#fff0f0', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10,
   },
   list: { paddingHorizontal: 16, paddingBottom: 16 },
@@ -131,7 +131,7 @@ const styles = StyleSheet.create({
   },
   cardLeft: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12 },
   cardIcon: { fontSize: 26 },
-  cardTitle: { fontSize: 15, fontWeight: '700', color: '#1a1a2e', maxWidth: 240 },
+  cardTitle: { fontSize: 15, fontWeight: '700', color: '#2A1515', maxWidth: 240 },
   cardMeta: { fontSize: 12, color: '#aaa', marginTop: 3 },
   chevron: { fontSize: 22, color: '#ccc', marginLeft: 8 },
   empty: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 8 },

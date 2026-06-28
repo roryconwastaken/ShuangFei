@@ -1,34 +1,29 @@
 import { useState } from 'react';
 import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
+  View, Text, TextInput, TouchableOpacity,
+  StyleSheet, ActivityIndicator, KeyboardAvoidingView,
+  Platform, Image,
 } from 'react-native';
 import { Link } from 'expo-router';
 import { supabase } from '../../src/lib/supabase';
 
+const CRIMSON = '#8B1A1A';
+
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [emailFocused, setEmailFocused] = useState(false);
+  const [passwordFocused, setPasswordFocused] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   const handleLogin = async () => {
     setError('');
-    if (!email || !password) {
-      setError('Please enter your email and password.');
-      return;
-    }
+    if (!email || !password) { setError('Please enter your email and password.'); return; }
     setLoading(true);
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     setLoading(false);
     if (error) setError(error.message);
-    // On success, _layout.tsx auth listener handles redirect
   };
 
   return (
@@ -36,21 +31,31 @@ export default function LoginScreen() {
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <View style={styles.card}>
-        {/* Logo / Title */}
-        <Text style={styles.logo}>双飞</Text>
-        <Text style={styles.title}>ShuangFei</Text>
-        <Text style={styles.subtitle}>Chinese Writing Practice</Text>
+      <View style={styles.inner}>
+        {/* Logo */}
+        <View style={styles.logoArea}>
+          <Image
+            source={require('../../assets/ShuangFei Logo Transparent.png')}
+            style={styles.logo}
+            resizeMode="contain"
+          />
+          <Text style={styles.appName}>SHUANGFEI</Text>
+          <Text style={styles.appSub}>Chinese Writing Practice</Text>
+        </View>
 
-        {/* Form */}
-        <View style={styles.form}>
+        {/* Card */}
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Sign in</Text>
+
           <Text style={styles.label}>Email</Text>
           <TextInput
-            style={styles.input}
+            style={[styles.input, emailFocused && styles.inputFocused]}
             value={email}
             onChangeText={setEmail}
+            onFocus={() => setEmailFocused(true)}
+            onBlur={() => setEmailFocused(false)}
             placeholder="you@example.com"
-            placeholderTextColor="#aaa"
+            placeholderTextColor="#bbb"
             keyboardType="email-address"
             autoCapitalize="none"
             autoCorrect={false}
@@ -58,36 +63,40 @@ export default function LoginScreen() {
 
           <Text style={styles.label}>Password</Text>
           <TextInput
-            style={styles.input}
+            style={[styles.input, passwordFocused && styles.inputFocused]}
             value={password}
             onChangeText={setPassword}
+            onFocus={() => setPasswordFocused(true)}
+            onBlur={() => setPasswordFocused(false)}
             placeholder="••••••••"
-            placeholderTextColor="#aaa"
+            placeholderTextColor="#bbb"
             secureTextEntry
           />
 
           {error ? <Text style={styles.error}>{error}</Text> : null}
 
           <TouchableOpacity
-            style={[styles.button, loading && styles.buttonDisabled]}
+            style={[styles.btnPrimary, loading && styles.btnDisabled]}
             onPress={handleLogin}
             disabled={loading}
           >
-            {loading ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={styles.buttonText}>Sign In</Text>
-            )}
+            {loading
+              ? <ActivityIndicator color="#fff" />
+              : <Text style={styles.btnPrimaryText}>Sign in</Text>
+            }
           </TouchableOpacity>
 
-          <View style={styles.footer}>
-            <Text style={styles.footerText}>Don't have an account? </Text>
-            <Link href="/(auth)/register" asChild>
-              <TouchableOpacity>
-                <Text style={styles.link}>Register</Text>
-              </TouchableOpacity>
-            </Link>
+          <View style={styles.sep}>
+            <View style={styles.sepLine} />
+            <Text style={styles.sepText}>or</Text>
+            <View style={styles.sepLine} />
           </View>
+
+          <Link href="/(auth)/register" asChild>
+            <TouchableOpacity style={styles.btnOutline}>
+              <Text style={styles.btnOutlineText}>Create an account</Text>
+            </TouchableOpacity>
+          </Link>
         </View>
       </View>
     </KeyboardAvoidingView>
@@ -95,95 +104,61 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
+  container: { flex: 1, backgroundColor: '#FDFBF8' },
+  inner: {
     flex: 1,
-    backgroundColor: '#f0f4f8',
     justifyContent: 'center',
     alignItems: 'center',
+    padding: 24,
   },
+  logoArea: { alignItems: 'center', marginBottom: 28 },
+  logo: { width: 110, height: 110 },
+  appName: {
+    fontSize: 15, fontWeight: '700', color: CRIMSON,
+    letterSpacing: 4, marginTop: 6,
+  },
+  appSub: { fontSize: 11, color: '#aaa', marginTop: 3, letterSpacing: 0.5 },
   card: {
-    width: '90%',
+    width: '100%',
     maxWidth: 480,
     backgroundColor: '#fff',
     borderRadius: 16,
-    padding: 40,
-    shadowColor: '#000',
-    shadowOpacity: 0.08,
-    shadowRadius: 20,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 4,
-    alignItems: 'center',
+    padding: 28,
+    borderWidth: 0.5,
+    borderColor: '#E8E2D9',
   },
-  logo: {
-    fontSize: 48,
-    marginBottom: 4,
-  },
-  title: {
-    fontSize: 26,
-    fontWeight: '700',
-    color: '#1a1a2e',
-    letterSpacing: 1,
-  },
-  subtitle: {
-    fontSize: 14,
-    color: '#888',
-    marginBottom: 32,
-    marginTop: 4,
-  },
-  form: {
-    width: '100%',
+  cardTitle: {
+    fontSize: 20, fontWeight: '700', color: '#1a1a1a',
+    marginBottom: 20,
   },
   label: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#444',
-    marginBottom: 6,
-    marginTop: 12,
+    fontSize: 11, fontWeight: '600', color: '#999',
+    letterSpacing: 0.08, textTransform: 'uppercase',
+    marginBottom: 6, marginTop: 14,
   },
   input: {
-    borderWidth: 1.5,
-    borderColor: '#e0e0e0',
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    fontSize: 15,
-    color: '#1a1a1a',
-    backgroundColor: '#fafafa',
+    borderWidth: 0.5, borderColor: '#DDD8D0', borderRadius: 8,
+    paddingHorizontal: 14, paddingVertical: 12,
+    fontSize: 15, color: '#1a1a1a', backgroundColor: '#fff',
   },
-  button: {
-    backgroundColor: '#e63946',
-    borderRadius: 10,
-    paddingVertical: 14,
-    alignItems: 'center',
-    marginTop: 24,
+  inputFocused: {
+    borderColor: CRIMSON,
+    shadowColor: CRIMSON, shadowOpacity: 0.15,
+    shadowRadius: 4, shadowOffset: { width: 0, height: 0 }, elevation: 0,
   },
-  buttonDisabled: {
-    opacity: 0.6,
+  error: { color: CRIMSON, fontSize: 13, marginTop: 12, textAlign: 'center' },
+  btnPrimary: {
+    backgroundColor: CRIMSON, borderRadius: 8,
+    paddingVertical: 13, alignItems: 'center', marginTop: 22,
   },
-  buttonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '700',
-    letterSpacing: 0.5,
+  btnDisabled: { opacity: 0.6 },
+  btnPrimaryText: { color: '#fff', fontSize: 15, fontWeight: '700', letterSpacing: 0.3 },
+  sep: { flexDirection: 'row', alignItems: 'center', gap: 10, marginVertical: 14 },
+  sepLine: { flex: 1, height: 0.5, backgroundColor: '#E8E2D9' },
+  sepText: { fontSize: 11, color: '#bbb' },
+  btnOutline: {
+    borderWidth: 0.5, borderColor: '#DDD8D0', borderRadius: 8,
+    paddingVertical: 12, alignItems: 'center',
   },
-  footer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginTop: 20,
-  },
-  footerText: {
-    color: '#888',
-    fontSize: 14,
-  },
-  link: {
-    color: '#e63946',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  error: {
-    color: '#e63946',
-    fontSize: 13,
-    marginTop: 12,
-    textAlign: 'center',
-  },
+  btnOutlineText: { fontSize: 14, color: '#666', fontWeight: '500' },
 });

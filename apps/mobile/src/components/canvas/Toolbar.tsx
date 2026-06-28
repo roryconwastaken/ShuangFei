@@ -165,7 +165,7 @@ export default function Toolbar({
       {/* Delete page */}
       {onDeletePage && (
         <TouchableOpacity style={styles.deletePageBtn} onPress={handleDeletePage}>
-          <MaterialCommunityIcons name="trash-can-outline" size={18} color="#e63946" />
+          <MaterialCommunityIcons name="trash-can-outline" size={18} color="rgba(255,255,255,0.7)" />
         </TouchableOpacity>
       )}
     </View>
@@ -176,7 +176,7 @@ const styles = StyleSheet.create({
   toolbar: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1a1a2e',
+    backgroundColor: '#2A1515',
     paddingHorizontal: 12,
     paddingVertical: 8,
     gap: 4,
@@ -189,7 +189,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   btnActive: {
-    backgroundColor: '#e63946',
+    backgroundColor: '#8B1A1A',
   },
   btnDisabled: {
     opacity: 0.3,
@@ -247,7 +247,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(230,57,70,0.15)',
+    backgroundColor: 'rgba(255,255,255,0.08)',
     marginLeft: 2,
   },
 });

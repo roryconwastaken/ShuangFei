@@ -96,7 +96,7 @@ export default function NewDocument() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f0f4f8' },
+  container: { flex: 1, backgroundColor: '#FDFBF8' },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -107,8 +107,8 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
   },
-  back: { color: '#e63946', fontSize: 15, fontWeight: '600' },
-  heading: { fontSize: 17, fontWeight: '700', color: '#1a1a2e' },
+  back: { color: '#8B1A1A', fontSize: 15, fontWeight: '600' },
+  heading: { fontSize: 17, fontWeight: '700', color: '#2A1515' },
   body: { flex: 1, padding: 24, maxWidth: 600, width: '100%', alignSelf: 'center' },
   label: { fontSize: 13, fontWeight: '600', color: '#555', marginBottom: 8, marginTop: 20 },
   typeRow: { flexDirection: 'row', gap: 12 },
@@ -117,20 +117,20 @@ const styles = StyleSheet.create({
     borderRadius: 12, padding: 16, alignItems: 'center',
     backgroundColor: '#fff',
   },
-  typeBtnActive: { borderColor: '#e63946', backgroundColor: '#fff5f5' },
+  typeBtnActive: { borderColor: '#8B1A1A', backgroundColor: '#fff5f5' },
   typeEmoji: { fontSize: 28, marginBottom: 6 },
   typeLabel: { fontSize: 15, fontWeight: '700', color: '#555' },
-  typeLabelActive: { color: '#e63946' },
+  typeLabelActive: { color: '#8B1A1A' },
   typeDesc: { fontSize: 11, color: '#aaa', marginTop: 4, textAlign: 'center' },
-  typeDescActive: { color: '#e63946', opacity: 0.7 },
+  typeDescActive: { color: '#8B1A1A', opacity: 0.7 },
   input: {
     borderWidth: 1.5, borderColor: '#e0e0e0', borderRadius: 10,
     paddingHorizontal: 14, paddingVertical: 12, fontSize: 16,
     color: '#1a1a1a', backgroundColor: '#fff',
   },
-  error: { color: '#e63946', fontSize: 13, marginTop: 8 },
+  error: { color: '#8B1A1A', fontSize: 13, marginTop: 8 },
   btn: {
-    backgroundColor: '#e63946', borderRadius: 10, paddingVertical: 15,
+    backgroundColor: '#8B1A1A', borderRadius: 10, paddingVertical: 15,
     alignItems: 'center', marginTop: 28,
   },
   btnDisabled: { opacity: 0.6 },

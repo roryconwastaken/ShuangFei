@@ -159,14 +159,14 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: '#1a1a2e',
+    backgroundColor: '#2A1515',
   },
   backBtn: { width: 60 },
-  backText: { color: '#e63946', fontSize: 15, fontWeight: '600' },
+  backText: { color: '#8B1A1A', fontSize: 15, fontWeight: '600' },
   titleBtn: { flex: 1, alignItems: 'center', marginHorizontal: 8 },
   titleText: { color: '#fff', fontSize: 16, fontWeight: '700', textAlign: 'center' },
   titleInput: {
     flex: 1, color: '#fff', fontSize: 16, fontWeight: '700', textAlign: 'center',
-    marginHorizontal: 8, borderBottomWidth: 1, borderBottomColor: '#e63946', paddingVertical: 2,
+    marginHorizontal: 8, borderBottomWidth: 1, borderBottomColor: '#8B1A1A', paddingVertical: 2,
   },
 });

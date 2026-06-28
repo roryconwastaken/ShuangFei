@@ -176,7 +176,7 @@ export default function StudentHome() {
 
       {/* Document list */}
       {loading ? (
-        <ActivityIndicator style={{ marginTop: 40 }} color="#e63946" size="large" />
+        <ActivityIndicator style={{ marginTop: 40 }} color="#8B1A1A" size="large" />
       ) : documents.length === 0 ? (
         <View style={styles.empty}>
           <Text style={styles.emptyIcon}>📄</Text>
@@ -189,7 +189,7 @@ export default function StudentHome() {
           keyExtractor={d => d.id}
           contentContainerStyle={styles.list}
           numColumns={2}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#e63946']} tintColor="#e63946" />}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#8B1A1A']} tintColor="#8B1A1A" />}
           renderItem={({ item }: { item: Document }) => (
             <TouchableOpacity
               style={styles.card}
@@ -273,11 +273,11 @@ export default function StudentHome() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f0f4f8' },
+  container: { flex: 1, backgroundColor: '#FDFBF8' },
   header: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    backgroundColor: '#1a1a2e',
+    backgroundColor: '#2A1515',
     paddingHorizontal: 24,
     paddingVertical: 20,
     gap: 12,
@@ -285,14 +285,14 @@ const styles = StyleSheet.create({
   greeting: { color: 'rgba(255,255,255,0.6)', fontSize: 13 },
   name: { color: '#fff', fontSize: 20, fontWeight: '700', marginTop: 2 },
   teacherLabel: { color: 'rgba(255,255,255,0.5)', fontSize: 12, marginTop: 4 },
-  teacherChange: { color: '#e63946', fontWeight: '600' },
+  teacherChange: { color: '#8B1A1A', fontWeight: '600' },
   joinBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
     marginTop: 6, alignSelf: 'flex-start',
-    backgroundColor: 'rgba(230,57,70,0.15)',
+    backgroundColor: 'rgba(139,26,26,0.25)',
     paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6,
   },
-  joinBtnText: { color: '#e63946', fontSize: 12, fontWeight: '600' },
+  joinBtnText: { color: '#8B1A1A', fontSize: 12, fontWeight: '600' },
   signOutBtn: {
     paddingHorizontal: 14, paddingVertical: 8,
     backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 8,
@@ -304,17 +304,17 @@ const styles = StyleSheet.create({
     marginHorizontal: 16, marginTop: 12, marginBottom: 0,
     padding: 14, borderRadius: 12, gap: 10,
     backgroundColor: '#fff0f0',
-    borderWidth: 1.5, borderColor: '#e63946',
+    borderWidth: 1.5, borderColor: '#8B1A1A',
   },
-  wbLiveDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#e63946' },
-  wbBannerLabel: { fontSize: 10, fontWeight: '700', color: '#e63946', textTransform: 'uppercase', letterSpacing: 0.5 },
-  wbBannerTitle: { fontSize: 14, fontWeight: '700', color: '#1a1a2e', marginTop: 1 },
-  wbBannerChevron: { fontSize: 22, color: '#e63946' },
+  wbLiveDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#8B1A1A' },
+  wbBannerLabel: { fontSize: 10, fontWeight: '700', color: '#8B1A1A', textTransform: 'uppercase', letterSpacing: 0.5 },
+  wbBannerTitle: { fontSize: 14, fontWeight: '700', color: '#2A1515', marginTop: 1 },
+  wbBannerChevron: { fontSize: 22, color: '#8B1A1A' },
   newBtn: {
     flexDirection: 'row', alignItems: 'center',
     margin: 16, padding: 16, borderRadius: 12,
-    backgroundColor: '#e63946', gap: 10,
-    shadowColor: '#e63946', shadowOpacity: 0.3,
+    backgroundColor: '#8B1A1A', gap: 10,
+    shadowColor: '#8B1A1A', shadowOpacity: 0.3,
     shadowRadius: 8, shadowOffset: { width: 0, height: 4 },
     elevation: 4,
   },
@@ -341,7 +341,7 @@ const styles = StyleSheet.create({
   badgeHomework: { backgroundColor: '#fff0f0' },
   badgeNotes: { backgroundColor: '#f0f4ff' },
   badgeText: { fontSize: 10, fontWeight: '700', textTransform: 'uppercase', color: '#666' },
-  cardTitle: { fontSize: 15, fontWeight: '700', color: '#1a1a2e', flex: 1 },
+  cardTitle: { fontSize: 15, fontWeight: '700', color: '#2A1515', flex: 1 },
   cardDate: { fontSize: 11, color: '#aaa', marginTop: 8 },
   cardPages: { fontSize: 11, color: '#aaa', marginTop: 2 },
   cardHint: { fontSize: 10, color: '#ccc', marginTop: 6, fontStyle: 'italic' },
@@ -354,7 +354,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff', borderRadius: 16,
     padding: 28, width: '85%', maxWidth: 400,
   },
-  modalTitle: { fontSize: 20, fontWeight: '700', color: '#1a1a2e', marginBottom: 6 },
+  modalTitle: { fontSize: 20, fontWeight: '700', color: '#2A1515', marginBottom: 6 },
   modalSubtitle: { fontSize: 14, color: '#888', marginBottom: 20 },
   codeInput: {
     borderWidth: 2, borderColor: '#e0e0e0', borderRadius: 10,
@@ -362,7 +362,7 @@ const styles = StyleSheet.create({
     fontSize: 22, fontWeight: '700', color: '#1a1a1a',
     letterSpacing: 4, textAlign: 'center',
   },
-  modalError: { color: '#e63946', fontSize: 13, marginTop: 8, textAlign: 'center' },
+  modalError: { color: '#8B1A1A', fontSize: 13, marginTop: 8, textAlign: 'center' },
   modalButtons: { flexDirection: 'row', gap: 12, marginTop: 24 },
   modalCancel: {
     flex: 1, paddingVertical: 14, borderRadius: 10,
@@ -371,7 +371,7 @@ const styles = StyleSheet.create({
   modalCancelText: { fontSize: 15, fontWeight: '600', color: '#555' },
   modalJoin: {
     flex: 1, paddingVertical: 14, borderRadius: 10,
-    backgroundColor: '#e63946', alignItems: 'center',
+    backgroundColor: '#8B1A1A', alignItems: 'center',
   },
   modalJoinText: { fontSize: 15, fontWeight: '700', color: '#fff' },
 });

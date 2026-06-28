@@ -113,7 +113,7 @@ export default function NewWhiteboard() {
           <Text style={styles.studentsHint}>Optional — you can also share from inside the whiteboard.</Text>
 
           {studentsLoading ? (
-            <ActivityIndicator color="#e63946" style={{ marginTop: 12 }} />
+            <ActivityIndicator color="#8B1A1A" style={{ marginTop: 12 }} />
           ) : students.length === 0 ? (
             <Text style={styles.noStudents}>No students in your class yet.</Text>
           ) : (
@@ -152,15 +152,15 @@ export default function NewWhiteboard() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f0f4f8' },
+  container: { flex: 1, backgroundColor: '#FDFBF8' },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: 20, paddingVertical: 16,
     backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#eee',
   },
   backBtn: { width: 60 },
-  back: { color: '#e63946', fontSize: 15, fontWeight: '600' },
-  heading: { fontSize: 17, fontWeight: '700', color: '#1a1a2e' },
+  back: { color: '#8B1A1A', fontSize: 15, fontWeight: '600' },
+  heading: { fontSize: 17, fontWeight: '700', color: '#2A1515' },
   body: { padding: 24, maxWidth: 600, width: '100%', alignSelf: 'center' },
   icon: { fontSize: 48, textAlign: 'center', marginTop: 8 },
   desc: { fontSize: 14, color: '#888', textAlign: 'center', marginTop: 8 },
@@ -170,10 +170,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14, paddingVertical: 12, fontSize: 16,
     color: '#1a1a1a', backgroundColor: '#fff',
   },
-  error: { color: '#e63946', fontSize: 13, marginTop: 8 },
+  error: { color: '#8B1A1A', fontSize: 13, marginTop: 8 },
   studentsHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 24 },
   selectedCount: {
-    fontSize: 12, fontWeight: '700', color: '#e63946',
+    fontSize: 12, fontWeight: '700', color: '#8B1A1A',
     backgroundColor: '#fff0f0', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10,
   },
   studentsHint: { fontSize: 12, color: '#aaa', marginBottom: 12 },
@@ -184,17 +184,17 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff', borderRadius: 10, padding: 14,
     borderWidth: 1.5, borderColor: '#e0e0e0',
   },
-  studentRowSelected: { borderColor: '#e63946', backgroundColor: '#fff5f5' },
+  studentRowSelected: { borderColor: '#8B1A1A', backgroundColor: '#fff5f5' },
   checkbox: {
     width: 22, height: 22, borderRadius: 6, borderWidth: 1.5,
     borderColor: '#ccc', justifyContent: 'center', alignItems: 'center',
   },
-  checkboxSelected: { backgroundColor: '#e63946', borderColor: '#e63946' },
+  checkboxSelected: { backgroundColor: '#8B1A1A', borderColor: '#8B1A1A' },
   checkmark: { color: '#fff', fontSize: 13, fontWeight: '700' },
   studentName: { fontSize: 15, fontWeight: '600', color: '#555' },
-  studentNameSelected: { color: '#1a1a2e' },
+  studentNameSelected: { color: '#2A1515' },
   btn: {
-    backgroundColor: '#e63946', borderRadius: 10,
+    backgroundColor: '#8B1A1A', borderRadius: 10,
     paddingVertical: 15, alignItems: 'center', marginTop: 28, marginBottom: 16,
   },
   btnDisabled: { opacity: 0.6 },
