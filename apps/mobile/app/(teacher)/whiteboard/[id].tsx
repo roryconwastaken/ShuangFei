@@ -10,7 +10,8 @@ import { useCanvas } from '../../../src/hooks/useCanvas';
 import { useAuthStore } from '../../../src/stores/authStore';
 import { supabase } from '../../../src/lib/supabase';
 
-const WIDTHS = [2, 4, 8];
+const WIDTHS  = [2, 4, 8];
+const COLORS  = ['#1a1a1a', '#e63946', '#2563eb', '#16a34a', '#f97316', '#9333ea'];
 
 function EraserIcon() {
   return (
@@ -42,6 +43,7 @@ export default function TeacherWhiteboard() {
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleDraft, setTitleDraft] = useState('');
   const [zoomLocked, setZoomLocked] = useState(false);
+  const [color, setColor] = useState('#1a1a1a');
   const [isSharing, setIsSharing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
@@ -219,6 +221,14 @@ export default function TeacherWhiteboard() {
 
         <View style={styles.divider} />
 
+        {COLORS.map(c => (
+          <TouchableOpacity key={c} style={styles.colorBtn} onPress={() => { setColor(c); setTool('pen'); }}>
+            <View style={[styles.colorDot, { backgroundColor: c }, color === c && styles.colorDotActive]} />
+          </TouchableOpacity>
+        ))}
+
+        <View style={styles.divider} />
+
         <TouchableOpacity style={[styles.btn, !canUndo && styles.btnDisabled]} onPress={undo} disabled={!canUndo}>
           <Text style={[styles.btnIcon, !canUndo && styles.iconDisabled]}>↩</Text>
         </TouchableOpacity>
@@ -245,6 +255,7 @@ export default function TeacherWhiteboard() {
         strokes={strokes}
         tool={tool}
         strokeWidth={strokeWidth}
+        color={color}
         zoomLocked={zoomLocked}
         onStrokeEnd={onStrokeEnd}
       />
@@ -351,6 +362,9 @@ const styles = StyleSheet.create({
   divider: { width: 1, height: 28, backgroundColor: 'rgba(255,255,255,0.15)', marginHorizontal: 4 },
   saveStatus: { color: 'rgba(255,255,255,0.5)', fontSize: 11, marginHorizontal: 4 },
   deleteBtn: { width: 36, height: 36, borderRadius: 8, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(230,57,70,0.15)' },
+  colorBtn: { width: 30, height: 30, justifyContent: 'center', alignItems: 'center' },
+  colorDot: { width: 18, height: 18, borderRadius: 9 },
+  colorDotActive: { width: 22, height: 22, borderRadius: 11, borderWidth: 2, borderColor: '#fff' },
   // Share panel
   modalOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.4)' },
   sharePanel: {

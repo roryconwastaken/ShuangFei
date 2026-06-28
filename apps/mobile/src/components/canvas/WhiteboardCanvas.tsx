@@ -37,9 +37,10 @@ const dotGridPath = (() => {
 interface WhiteboardCanvasProps {
   strokes: Stroke[];
   readOnly?: boolean;
-  singleFingerPan?: boolean; // one-finger pan for student read-only view
+  singleFingerPan?: boolean;
   tool: 'pen' | 'eraser';
   strokeWidth: number;
+  color?: string;
   zoomLocked: boolean;
   onStrokeEnd?: (strokes: Stroke[]) => void;
 }
@@ -80,6 +81,7 @@ export default function WhiteboardCanvas({
   singleFingerPan = false,
   tool,
   strokeWidth,
+  color = '#1a1a1a',
   zoomLocked,
   onStrokeEnd,
 }: WhiteboardCanvasProps) {
@@ -97,10 +99,12 @@ export default function WhiteboardCanvas({
   const activeWidthSV   = useSharedValue<number>(strokeWidth);
   const toolSV          = useSharedValue<string>(tool);
   const strokeWidthSV   = useSharedValue<number>(strokeWidth);
+  const colorSV         = useSharedValue<string>(color);
   const zoomLockedSV    = useSharedValue<boolean>(zoomLocked);
 
   useEffect(() => { toolSV.value = tool; }, [tool]);
   useEffect(() => { strokeWidthSV.value = strokeWidth; }, [strokeWidth]);
+  useEffect(() => { colorSV.value = color; }, [color]);
   // Lock change: just freeze/unfreeze — do NOT reset transform
   useEffect(() => { zoomLockedSV.value = zoomLocked; }, [zoomLocked]);
 
@@ -203,7 +207,7 @@ export default function WhiteboardCanvas({
         activeColorSV.value = BG_COLOR;
         activeWidthSV.value = strokeWidthSV.value * 6;
       } else {
-        activeColorSV.value = '#1a1a1a';
+        activeColorSV.value = colorSV.value;
         activeWidthSV.value = strokeWidthSV.value;
       }
       activePointsSV.value = [cx, cy];
