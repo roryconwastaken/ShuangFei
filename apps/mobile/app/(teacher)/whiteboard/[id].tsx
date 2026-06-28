@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import WhiteboardCanvas from '../../../src/components/canvas/WhiteboardCanvas';
 import { useCanvas } from '../../../src/hooks/useCanvas';
 import { useAuthStore } from '../../../src/stores/authStore';
@@ -12,20 +13,6 @@ import { supabase } from '../../../src/lib/supabase';
 
 const WIDTHS  = [2, 4, 8];
 const COLORS  = ['#1a1a1a', '#e63946', '#2563eb', '#16a34a', '#f97316', '#9333ea'];
-
-function EraserIcon() {
-  return (
-    <View style={eraserStyles.wrap}>
-      <View style={eraserStyles.top} />
-      <View style={eraserStyles.bottom} />
-    </View>
-  );
-}
-const eraserStyles = StyleSheet.create({
-  wrap: { width: 20, height: 14, borderRadius: 2, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(255,255,255,0.6)' },
-  top:  { flex: 1, backgroundColor: '#FFB3C1' },
-  bottom: { flex: 1, backgroundColor: '#fff' },
-});
 
 interface StudentAccess {
   id: string;
@@ -169,8 +156,6 @@ export default function TeacherWhiteboard() {
     setTimeout(() => setSaving(false), 2000);
   };
 
-  const accessCount = students.filter(s => s.hasAccess).length;
-
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right', 'bottom']}>
       {/* Header */}
@@ -195,20 +180,18 @@ export default function TeacherWhiteboard() {
         )}
 
         <TouchableOpacity style={styles.shareBtn} onPress={openShare}>
-          <Text style={styles.shareBtnIcon}>👥</Text>
-          {accessCount > 0 && (
-            <View style={styles.shareBadge}><Text style={styles.shareBadgeText}>{accessCount}</Text></View>
-          )}
+          <MaterialCommunityIcons name="account-multiple" size={22} color="#fff" />
+          {isSharing && <View style={styles.liveDot} />}
         </TouchableOpacity>
       </View>
 
       {/* Toolbar */}
       <View style={styles.toolbar}>
         <TouchableOpacity style={[styles.btn, tool === 'pen' && styles.btnActive]} onPress={() => setTool('pen')}>
-          <Text style={styles.btnIcon}>✏️</Text>
+          <MaterialCommunityIcons name="pencil" size={20} color="#fff" />
         </TouchableOpacity>
         <TouchableOpacity style={[styles.btn, tool === 'eraser' && styles.btnActive]} onPress={() => setTool('eraser')}>
-          <EraserIcon />
+          <MaterialCommunityIcons name="eraser" size={20} color="#fff" />
         </TouchableOpacity>
 
         <View style={styles.divider} />
@@ -230,16 +213,16 @@ export default function TeacherWhiteboard() {
         <View style={styles.divider} />
 
         <TouchableOpacity style={[styles.btn, !canUndo && styles.btnDisabled]} onPress={undo} disabled={!canUndo}>
-          <Text style={[styles.btnIcon, !canUndo && styles.iconDisabled]}>↩</Text>
+          <MaterialCommunityIcons name="undo-variant" size={20} color={canUndo ? '#fff' : 'rgba(255,255,255,0.3)'} />
         </TouchableOpacity>
         <TouchableOpacity style={[styles.btn, !canRedo && styles.btnDisabled]} onPress={redo} disabled={!canRedo}>
-          <Text style={[styles.btnIcon, !canRedo && styles.iconDisabled]}>↪</Text>
+          <MaterialCommunityIcons name="redo-variant" size={20} color={canRedo ? '#fff' : 'rgba(255,255,255,0.3)'} />
         </TouchableOpacity>
 
         <View style={styles.divider} />
 
         <TouchableOpacity style={[styles.btn, zoomLocked && styles.btnActive]} onPress={() => setZoomLocked(v => !v)}>
-          <Text style={styles.btnIcon}>{zoomLocked ? '🔒' : '🔓'}</Text>
+          <MaterialCommunityIcons name={zoomLocked ? 'lock' : 'lock-open-variant'} size={20} color="#fff" />
         </TouchableOpacity>
 
         <View style={{ flex: 1 }} />
@@ -247,7 +230,7 @@ export default function TeacherWhiteboard() {
         <View style={styles.divider} />
 
         <TouchableOpacity style={styles.deleteBtn} onPress={confirmDelete}>
-          <Text style={styles.btnIcon}>🗑</Text>
+          <MaterialCommunityIcons name="trash-can-outline" size={18} color="#e63946" />
         </TouchableOpacity>
       </View>
 
@@ -293,7 +276,7 @@ export default function TeacherWhiteboard() {
             <View style={styles.panelDivider} />
 
             <Text style={styles.panelSectionTitle}>
-              Students with access {accessCount > 0 && `(${accessCount})`}
+              Students with access {students.filter(s => s.hasAccess).length > 0 && `(${students.filter(s => s.hasAccess).length})`}
             </Text>
 
             {studentsLoading ? (
@@ -341,13 +324,12 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1, borderBottomColor: '#e63946', paddingVertical: 2,
   },
   shareBtn: { width: 44, height: 44, justifyContent: 'center', alignItems: 'center' },
-  shareBtnIcon: { fontSize: 22 },
-  shareBadge: {
-    position: 'absolute', top: 4, right: 4,
-    backgroundColor: '#e63946', borderRadius: 8,
-    paddingHorizontal: 5, paddingVertical: 1, minWidth: 16, alignItems: 'center',
+  liveDot: {
+    position: 'absolute', top: 6, right: 6,
+    width: 8, height: 8, borderRadius: 4,
+    backgroundColor: '#e63946',
+    borderWidth: 1.5, borderColor: '#1a1a2e',
   },
-  shareBadgeText: { color: '#fff', fontSize: 10, fontWeight: '700' },
   toolbar: {
     flexDirection: 'row', alignItems: 'center',
     backgroundColor: '#1a1a2e', paddingHorizontal: 12, paddingVertical: 8, gap: 4,

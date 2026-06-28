@@ -5,23 +5,21 @@
     "scheme": "shuangfei",
     "version": "1.0.0",
     "orientation": "default",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/ShuangFei Logo.png",
     "userInterfaceStyle": "light",
     "ios": {
       "supportsTablet": true
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/android-icon-foreground.png",
-        "backgroundImage": "./assets/android-icon-background.png",
-        "monochromeImage": "./assets/android-icon-monochrome.png"
+        "backgroundColor": "#ffffff",
+        "foregroundImage": "./assets/ShuangFei Logo.png"
       },
       "predictiveBackGestureEnabled": false,
       "package": "com.roryconwastaken.shuangfei"
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/ShuangFei Logo.png"
     },
     "extra": {
       "eas": {

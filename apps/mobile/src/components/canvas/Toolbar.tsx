@@ -1,4 +1,5 @@
 import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 
 interface ToolbarProps {
   tool: 'pen' | 'eraser';
@@ -21,21 +22,6 @@ interface ToolbarProps {
 }
 
 const WIDTHS = [2, 4, 8];
-
-// Eraser icon: two-tone rectangle (pink top / white bottom) like a real eraser
-function EraserIcon() {
-  return (
-    <View style={eraserStyles.wrap}>
-      <View style={eraserStyles.top} />
-      <View style={eraserStyles.bottom} />
-    </View>
-  );
-}
-const eraserStyles = StyleSheet.create({
-  wrap: { width: 20, height: 14, borderRadius: 2, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(255,255,255,0.6)' },
-  top:  { flex: 1, backgroundColor: '#FFB3C1' },
-  bottom: { flex: 1, backgroundColor: '#fff' },
-});
 
 export default function Toolbar({
   tool,
@@ -77,15 +63,15 @@ export default function Toolbar({
         style={[styles.btn, tool === 'pen' && styles.btnActive]}
         onPress={() => onToolChange('pen')}
       >
-        <Text style={styles.btnIcon}>✏️</Text>
+        <MaterialCommunityIcons name="pencil" size={20} color="#fff" />
       </TouchableOpacity>
 
-      {/* Eraser - custom two-tone icon */}
+      {/* Eraser */}
       <TouchableOpacity
         style={[styles.btn, tool === 'eraser' && styles.btnActive]}
         onPress={() => onToolChange('eraser')}
       >
-        <EraserIcon />
+        <MaterialCommunityIcons name="eraser" size={20} color="#fff" />
       </TouchableOpacity>
 
       <View style={styles.divider} />
@@ -109,7 +95,7 @@ export default function Toolbar({
         onPress={onUndo}
         disabled={!canUndo}
       >
-        <Text style={[styles.btnIcon, !canUndo && styles.iconDisabled]}>↩</Text>
+        <MaterialCommunityIcons name="undo-variant" size={20} color={canUndo ? '#fff' : 'rgba(255,255,255,0.3)'} />
       </TouchableOpacity>
 
       {/* Redo */}
@@ -118,18 +104,21 @@ export default function Toolbar({
         onPress={onRedo}
         disabled={!canRedo}
       >
-        <Text style={[styles.btnIcon, !canRedo && styles.iconDisabled]}>↪</Text>
+        <MaterialCommunityIcons name="redo-variant" size={20} color={canRedo ? '#fff' : 'rgba(255,255,255,0.3)'} />
       </TouchableOpacity>
 
-      {/* Lock zoom */}
+      {/* Zoom lock */}
       <TouchableOpacity
         style={[styles.btn, zoomLocked && styles.btnActive]}
         onPress={() => onZoomLockChange(!zoomLocked)}
       >
-        <Text style={styles.btnIcon}>{zoomLocked ? '🔒' : '🔓'}</Text>
+        <MaterialCommunityIcons
+          name={zoomLocked ? 'lock' : 'lock-open-variant'}
+          size={20}
+          color="#fff"
+        />
       </TouchableOpacity>
 
-      {/* Spacer */}
       <View style={{ flex: 1 }} />
 
       {/* Save status */}
@@ -143,7 +132,7 @@ export default function Toolbar({
         onPress={onPrevPage}
         disabled={pageNumber <= 1}
       >
-        <Text style={[styles.btnIcon, pageNumber <= 1 && styles.iconDisabled]}>◀</Text>
+        <MaterialCommunityIcons name="chevron-left" size={22} color={pageNumber <= 1 ? 'rgba(255,255,255,0.3)' : '#fff'} />
       </TouchableOpacity>
 
       <Text style={styles.pageLabel}>{pageNumber} / {pageCount}</Text>
@@ -153,20 +142,21 @@ export default function Toolbar({
         onPress={onNextPage}
         disabled={pageNumber >= pageCount}
       >
-        <Text style={[styles.btnIcon, pageNumber >= pageCount && styles.iconDisabled]}>▶</Text>
+        <MaterialCommunityIcons name="chevron-right" size={22} color={pageNumber >= pageCount ? 'rgba(255,255,255,0.3)' : '#fff'} />
       </TouchableOpacity>
 
       {/* Add page */}
       {onAddPage && (
         <TouchableOpacity style={styles.addPageBtn} onPress={onAddPage}>
-          <Text style={styles.addPageText}>+ Page</Text>
+          <MaterialCommunityIcons name="plus" size={16} color="#fff" />
+          <Text style={styles.addPageText}>Page</Text>
         </TouchableOpacity>
       )}
 
       {/* Delete page */}
       {onDeletePage && (
         <TouchableOpacity style={styles.deletePageBtn} onPress={handleDeletePage}>
-          <Text style={styles.deletePageText}>🗑</Text>
+          <MaterialCommunityIcons name="trash-can-outline" size={18} color="#e63946" />
         </TouchableOpacity>
       )}
     </View>
@@ -194,13 +184,6 @@ const styles = StyleSheet.create({
   },
   btnDisabled: {
     opacity: 0.3,
-  },
-  btnIcon: {
-    fontSize: 18,
-    color: '#fff',
-  },
-  iconDisabled: {
-    opacity: 0.4,
   },
   widthBtn: {
     width: 36,
@@ -235,7 +218,10 @@ const styles = StyleSheet.create({
     marginHorizontal: 4,
   },
   addPageBtn: {
-    paddingHorizontal: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    paddingHorizontal: 10,
     paddingVertical: 8,
     backgroundColor: 'rgba(255,255,255,0.1)',
     borderRadius: 8,
@@ -243,7 +229,7 @@ const styles = StyleSheet.create({
   },
   addPageText: {
     color: '#fff',
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '600',
   },
   deletePageBtn: {
@@ -254,8 +240,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: 'rgba(230,57,70,0.15)',
     marginLeft: 2,
-  },
-  deletePageText: {
-    fontSize: 16,
   },
 });

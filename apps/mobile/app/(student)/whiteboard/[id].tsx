@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import WhiteboardCanvas from '../../../src/components/canvas/WhiteboardCanvas';
@@ -45,7 +46,7 @@ export default function StudentWhiteboard() {
           style={[styles.lockBtn, zoomLocked && styles.lockBtnActive]}
           onPress={() => setZoomLocked(v => !v)}
         >
-          <Text style={styles.lockIcon}>{zoomLocked ? '🔒' : '🔓'}</Text>
+          <MaterialCommunityIcons name={zoomLocked ? 'lock' : 'lock-open-variant'} size={20} color="#fff" />
         </TouchableOpacity>
       </View>
 
@@ -75,5 +76,4 @@ const styles = StyleSheet.create({
   title: { color: '#fff', fontSize: 16, fontWeight: '700' },
   lockBtn: { width: 40, height: 40, borderRadius: 8, justifyContent: 'center', alignItems: 'center' },
   lockBtnActive: { backgroundColor: '#e63946' },
-  lockIcon: { fontSize: 18 },
 });

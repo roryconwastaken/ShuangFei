@@ -9,7 +9,7 @@
  *   thread. Touch → path update → Skia render happens in ONE frame with ZERO
  *   JS bridge crossings. Near-zero latency.
  */
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState, memo } from 'react';
 import { View, StyleSheet, LayoutChangeEvent } from 'react-native';
 import { Canvas, Path, Rect, Group, Skia, SkPath } from '@shopify/react-native-skia';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
@@ -53,14 +53,40 @@ const StaticLayer = React.memo(function StaticLayer({
   animatedTransform: any;
   buildPath: (pts: StrokePoint[]) => SkPath;
 }) {
+  // Cache SkPath objects by stroke ID — rebuilt only when a stroke is new
+  const strokeCacheRef     = useRef<Map<string, SkPath>>(new Map());
+  const annotationCacheRef = useRef<Map<string, SkPath>>(new Map());
+
+  const builtStrokes = useMemo(() => {
+    const next = new Map<string, SkPath>();
+    const result = strokes.map(s => {
+      const path = strokeCacheRef.current.get(s.id) ?? buildPath(s.points);
+      next.set(s.id, path);
+      return { ...s, path };
+    });
+    strokeCacheRef.current = next;
+    return result;
+  }, [strokes, buildPath]);
+
+  const builtAnnotations = useMemo(() => {
+    const next = new Map<string, SkPath>();
+    const result = annotations.map(s => {
+      const path = annotationCacheRef.current.get(s.id) ?? buildPath(s.points);
+      next.set(s.id, path);
+      return { ...s, path };
+    });
+    annotationCacheRef.current = next;
+    return result;
+  }, [annotations, buildPath]);
+
   return (
     <Canvas style={StyleSheet.absoluteFill}>
       <Rect x={0} y={0} width={width} height={height} color={BG_COLOR} />
       <Group transform={animatedTransform}>
-        {strokes.map(s => (
+        {builtStrokes.map(s => (
           <Path
             key={s.id}
-            path={buildPath(s.points)}
+            path={s.path}
             color={s.color}
             style="stroke"
             strokeWidth={s.width}
@@ -69,10 +95,10 @@ const StaticLayer = React.memo(function StaticLayer({
           />
         ))}
         {showGrid && <Path path={gridPath} color={GRID_COLOR} style="stroke" strokeWidth={0.8} />}
-        {annotations.map(s => (
+        {builtAnnotations.map(s => (
           <Path
             key={s.id}
-            path={buildPath(s.points)}
+            path={s.path}
             color="#e63946"
             style="stroke"
             strokeWidth={s.width}
