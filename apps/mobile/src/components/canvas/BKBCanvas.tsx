@@ -22,6 +22,25 @@ const BG_COLOR = '#ffffff';
 const GRID_COLOR = '#d0d8e0';
 const MARGIN = 14;
 
+// Fits the portrait reference rectangle (where the grid/strokes actually
+// live) into a landscape container, preserving its aspect ratio — the same
+// idea as CSS "object-fit: contain". Called from JS only (layout/effects),
+// never from a gesture worklet.
+function computeLandscapeFit(
+  containerW: number, containerH: number,
+  ref: { width: number; height: number },
+) {
+  if (ref.width <= 0 || ref.height <= 0 || containerW <= 0 || containerH <= 0) {
+    return { scale: 1, offsetX: 0, offsetY: 0 };
+  }
+  const scale = Math.min(containerW / ref.width, containerH / ref.height);
+  return {
+    scale,
+    offsetX: containerW / 2 - (ref.width / 2) * scale,
+    offsetY: containerH / 2 - (ref.height / 2) * scale,
+  };
+}
+
 interface BKBCanvasProps {
   strokes: Stroke[];
   annotations?: Stroke[];
@@ -125,6 +144,16 @@ export default function BKBCanvas({
   onStrokeEnd,
 }: BKBCanvasProps) {
   const [size, setSize] = useState({ width: 0, height: 0 });
+  // Drawing/annotating is disabled in landscape (container wider than tall) —
+  // touch coordinates don't reliably line up with the render transform there.
+  const [isLandscape, setIsLandscape] = useState(false);
+  // The last known PORTRAIT layout size. Strokes/grid are always captured
+  // relative to whatever the portrait container was, so when viewing in
+  // landscape we fit *that* rectangle (preserving its aspect ratio) into the
+  // current box instead of re-stretching the grid to the landscape shape —
+  // which is what caused squished cells and misaligned strokes there.
+  const referenceSizeRef = useRef({ width: 0, height: 0 });
+  const [referenceSize, setReferenceSize] = useState({ width: 0, height: 0 });
 
   // Stable refs so worklet-called JS functions always see latest values
   const strokesRef = useRef(strokes);
@@ -201,6 +230,7 @@ export default function BKBCanvas({
   // ─── Shared values (accessible from UI-thread worklets) ────────────────────
   const transformSV = useSharedValue({ scale: 1, offsetX: 0, offsetY: 0 });
   const canvasSizeSV = useSharedValue({ width: 0, height: 0 });
+  const isLandscapeSV = useSharedValue(false);
 
   // Active stroke points — reassigned (not mutated) on every touch event so
   // Reanimated always detects the change and re-runs useDerivedValue reliably.
@@ -218,17 +248,25 @@ export default function BKBCanvas({
   useEffect(() => { strokeWidthSV.value = strokeWidth; }, [strokeWidth]);
   useEffect(() => { annotationModeSV.value = annotationMode; }, [annotationMode]);
 
-  // Reset zoom whenever it gets locked
+  // While locked, pin the transform to the resting fit — identity in
+  // portrait, or the landscape contain-fit — any time locking, orientation,
+  // or the settled layout size changes. Landscape is fully static while
+  // locked (no gesture can move it), so re-asserting here on every relevant
+  // dependency change also guards against a transient/incorrect transform
+  // from an in-between onLayout call during the rotation animation.
   useEffect(() => {
-    if (zoomLocked) transformSV.value = { scale: 1, offsetX: 0, offsetY: 0 };
-  }, [zoomLocked]);
+    if (!zoomLocked) return;
+    transformSV.value = isLandscape
+      ? computeLandscapeFit(size.width, size.height, referenceSizeRef.current)
+      : { scale: 1, offsetX: 0, offsetY: 0 };
+  }, [zoomLocked, isLandscape, size.width, size.height, referenceSize.width, referenceSize.height]);
 
   // ─── Derived values (UI thread only, zero-latency) ─────────────────────────
   // Group transform for both static and active canvases
   const animatedTransform = useDerivedValue(() => [
-    { scale: transformSV.value.scale },
     { translateX: transformSV.value.offsetX },
     { translateY: transformSV.value.offsetY },
+    { scale: transformSV.value.scale },
   ]);
 
   // Active path: same quadTo smoothing as buildPath so the stroke looks
@@ -255,12 +293,16 @@ export default function BKBCanvas({
     return b.detach();
   });
 
-  // ─── Grid (static, recomputed only on layout change) ───────────────────────
+  // ─── Grid (static, recomputed only when the portrait reference changes) ───
+  // Always built in the portrait reference's coordinate space (not the
+  // current, possibly-landscape, container) so cells stay the same shape
+  // regardless of orientation — the landscape transform fits this whole
+  // rectangle into the screen rather than re-stretching it.
   const gridPath = useMemo(() => {
-    if (size.width === 0) return Skia.PathBuilder.Make().detach();
+    if (referenceSize.width === 0) return Skia.PathBuilder.Make().detach();
     const builder = Skia.PathBuilder.Make();
     const x0 = MARGIN, y0 = MARGIN;
-    const x1 = size.width - MARGIN, y1 = size.height - MARGIN;
+    const x1 = referenceSize.width - MARGIN, y1 = referenceSize.height - MARGIN;
     const cw = (x1 - x0) / COLS, ch = (y1 - y0) / ROWS;
     for (let c = 0; c <= COLS; c++) {
       builder.moveTo(x0 + c * cw, y0); builder.lineTo(x0 + c * cw, y1);
@@ -269,7 +311,7 @@ export default function BKBCanvas({
       builder.moveTo(x0, y0 + r * ch); builder.lineTo(x1, y0 + r * ch);
     }
     return builder.detach();
-  }, [size]);
+  }, [referenceSize]);
 
   // Smooth quadTo path for completed strokes (called on JS thread only)
   const buildPath = useCallback((points: StrokePoint[]): SkPath => {
@@ -323,7 +365,7 @@ export default function BKBCanvas({
     .maxPointers(1)
     .onBegin(e => {
       'worklet';
-      if (readOnly) return;
+      if (readOnly || isLandscapeSV.value) return;
       const t = transformSV.value;
       let cx = (e.x - t.offsetX) / t.scale;
       let cy = (e.y - t.offsetY) / t.scale;
@@ -352,6 +394,7 @@ export default function BKBCanvas({
     })
     .onUpdate(e => {
       'worklet';
+      if (isLandscapeSV.value) return;
       const t = transformSV.value;
       let cx = (e.x - t.offsetX) / t.scale;
       let cy = (e.y - t.offsetY) / t.scale;
@@ -394,7 +437,10 @@ export default function BKBCanvas({
     })
     .onUpdate(e => {
       'worklet';
-      const newScale = Math.max(1, Math.min(5, pinchBaseSV.value * e.scale));
+      // Floor is lower than 1 because in landscape the resting/"fit" scale
+      // can itself be well below 1 (the portrait page letterboxed down) —
+      // clamping to 1 there would force a jarring snap the instant you touch.
+      const newScale = Math.max(0.3, Math.min(5, pinchBaseSV.value * e.scale));
       const cur = transformSV.value;
       transformSV.value = { scale: newScale, offsetX: cur.offsetX, offsetY: cur.offsetY };
     });
@@ -417,19 +463,67 @@ export default function BKBCanvas({
       };
     });
 
-  const navGesture = Gesture.Simultaneous(pinchGesture, navPan);
+  // One finger also pans — only relevant while unlocked/landscape (no
+  // drawing happening), so it can never compete with drawGesture. Capped at
+  // 1 pointer so it steps aside the moment a second finger joins for pinch.
+  const onePanGesture = Gesture.Pan()
+    .maxPointers(1)
+    .onBegin(() => {
+      'worklet';
+      const cur = transformSV.value;
+      panBaseSV.value = { x: cur.offsetX, y: cur.offsetY };
+    })
+    .onUpdate(e => {
+      'worklet';
+      const base = panBaseSV.value;
+      const cur  = transformSV.value;
+      transformSV.value = {
+        scale:   cur.scale,
+        offsetX: base.x + e.translationX,
+        offsetY: base.y + e.translationY,
+      };
+    });
 
+  const navGesture = Gesture.Simultaneous(onePanGesture, pinchGesture, navPan);
+
+  // Locked: draw in portrait, completely static (no pan/zoom either) in
+  // landscape — landscape touch coordinates don't reliably line up with the
+  // render transform for drawing, and "locked" should mean locked, not just
+  // "no drawing." Unlocked (either orientation): pan/zoom only, never draw.
   const gesture = readOnly
     ? zoomLocked ? Gesture.Pan() : navGesture
     : zoomLocked
-      ? drawGesture
-      : Gesture.Simultaneous(drawGesture, navGesture);
+      ? (isLandscape ? Gesture.Pan() : drawGesture)
+      : navGesture;
 
   const handleLayout = (e: LayoutChangeEvent) => {
     const { width, height } = e.nativeEvent.layout;
     sizeRef.current = { width, height };
     canvasSizeSV.value = { width, height };
     setSize({ width, height });
+
+    const landscape = width > height;
+    isLandscapeSV.value = landscape;
+    setIsLandscape(landscape);
+
+    if (!landscape) {
+      // Portrait: the container itself is the reference, and the transform
+      // is identity — exactly the original (working) drawing behavior.
+      referenceSizeRef.current = { width, height };
+      setReferenceSize({ width, height });
+      transformSV.value = { scale: 1, offsetX: 0, offsetY: 0 };
+      return;
+    }
+
+    // Landscape: fit the last-known portrait reference into this box. If
+    // we've never seen a portrait layout yet, guess a portrait-shaped
+    // reference (transposed current dims) so the grid isn't blank — it'll
+    // be replaced with the real thing the first time the device is portrait.
+    if (referenceSizeRef.current.width === 0) {
+      referenceSizeRef.current = { width: height, height: width };
+      setReferenceSize(referenceSizeRef.current);
+    }
+    transformSV.value = computeLandscapeFit(width, height, referenceSizeRef.current);
   };
 
   return (
