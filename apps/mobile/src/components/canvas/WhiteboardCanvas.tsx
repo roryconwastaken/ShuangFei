@@ -445,13 +445,20 @@ export default function WhiteboardCanvas({
       const cy = (e.y - t.offsetY) / t.scale;
       activePointsSV.value = activePointsSV.value.concat(cx, cy);
     })
-    .onEnd(() => {
+    .onEnd((_e, success) => {
       'worklet';
+      // success is false when the gesture was cancelled (e.g. a second finger
+      // joined to pan/zoom) — don't leave behind an accidental dot in that case
+      if (!success) return;
       const pts   = activePointsSV.value;
       const c     = activeColorSV.value;
       const width = activeWidthSV.value;
       const t     = toolSV.value;
       if (pts.length > 0) runOnJS(finalizeStroke)(pts, c, width, t);
+    })
+    .onFinalize((_e, success) => {
+      'worklet';
+      if (!success) activePointsSV.value = [];
     });
 
   const tapGesture = Gesture.Tap()

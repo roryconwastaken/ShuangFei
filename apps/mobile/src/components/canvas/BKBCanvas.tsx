@@ -369,8 +369,11 @@ export default function BKBCanvas({
       // concat() always returns a new array — reliable reassignment, native speed
       activePointsSV.value = activePointsSV.value.concat(cx, cy);
     })
-    .onEnd(() => {
+    .onEnd((_e, success) => {
       'worklet';
+      // success is false when the gesture was cancelled (e.g. a second finger
+      // joined to pan/zoom) — don't leave behind an accidental dot in that case
+      if (!success) return;
       const pts   = activePointsSV.value;
       const color = activeColorSV.value;
       const width = activeWidthSV.value;
@@ -378,6 +381,10 @@ export default function BKBCanvas({
       // Keep active path visible — onBegin replaces it when next stroke starts,
       // by which time the static layer has already rendered the committed stroke.
       if (pts.length > 0) runOnJS(finalizeStroke)(pts, color, width, t);
+    })
+    .onFinalize((_e, success) => {
+      'worklet';
+      if (!success) activePointsSV.value = [];
     });
 
   const pinchGesture = Gesture.Pinch()
