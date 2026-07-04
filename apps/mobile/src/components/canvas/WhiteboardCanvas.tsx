@@ -14,7 +14,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState, memo } from '
 import { View, StyleSheet, LayoutChangeEvent } from 'react-native';
 import { Canvas, Path, Rect, Group, Skia, SkPath } from '@shopify/react-native-skia';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import { useSharedValue, useDerivedValue, runOnJS } from 'react-native-reanimated';
+import { useSharedValue, useDerivedValue, runOnJS, runOnUI } from 'react-native-reanimated';
 import { Stroke, StrokePoint } from '../../lib/supabase';
 
 const BG_COLOR    = '#ffffff';
@@ -106,8 +106,16 @@ export default function WhiteboardCanvas({
   useEffect(() => { strokesRef.current = strokes; }, [strokes]);
   useEffect(() => { onStrokeEndRef.current = onStrokeEnd; }, [onStrokeEnd]);
 
+  const prevStrokesLen = useRef(strokes.length);
+  useEffect(() => {
+    if (strokes.length < prevStrokesLen.current) {
+      runOnUI(() => { 'worklet'; activePointsSV.value = []; })();
+    }
+    prevStrokesLen.current = strokes.length;
+  }, [strokes]);
+
   const transformSV     = useSharedValue({ scale: 1, offsetX: 0, offsetY: 0 });
-  const activePointsSV  = useSharedValue<number[]>([]);
+  const activePointsSV = useSharedValue<number[]>([]);
   const activeColorSV   = useSharedValue<string>('#1a1a1a');
   const activeWidthSV   = useSharedValue<number>(strokeWidth);
   const toolSV          = useSharedValue<string>(tool);
@@ -129,13 +137,21 @@ export default function WhiteboardCanvas({
 
   const activePath = useDerivedValue(() => {
     const pts = activePointsSV.value;
-    if (pts.length < 2) return Skia.PathBuilder.Make().detach();
-    const builder = Skia.PathBuilder.Make();
-    builder.moveTo(pts[0], pts[1]);
-    for (let i = 2; i < pts.length; i += 2) {
-      builder.lineTo(pts[i], pts[i + 1]);
+    const len = pts.length;
+    if (len < 2) return Skia.PathBuilder.Make().detach();
+    const b = Skia.PathBuilder.Make();
+    b.moveTo(pts[0], pts[1]);
+    if (len === 2) {
+      b.lineTo(pts[0] + 0.1, pts[1] + 0.1);
+    } else {
+      for (let i = 2; i < len - 2; i += 2) {
+        const mx = (pts[i] + pts[i + 2]) / 2;
+        const my = (pts[i + 1] + pts[i + 3]) / 2;
+        b.quadTo(pts[i], pts[i + 1], mx, my);
+      }
+      b.lineTo(pts[len - 2], pts[len - 1]);
     }
-    return builder.detach();
+    return b.detach();
   });
 
   const buildPath = useCallback((points: StrokePoint[]): SkPath => {
@@ -155,9 +171,10 @@ export default function WhiteboardCanvas({
   }, []);
 
   const finalizeStroke = useCallback((pts: number[], color: string, width: number, toolName: string) => {
+    const raw = pts.length === 2 ? [pts[0], pts[1], pts[0] + 0.1, pts[1] + 0.1] : pts;
     const points: StrokePoint[] = [];
-    for (let i = 0; i < pts.length; i += 2) {
-      points.push({ x: pts[i], y: pts[i + 1], t: Date.now() });
+    for (let i = 0; i < raw.length; i += 2) {
+      points.push({ x: raw[i], y: raw[i + 1], t: Date.now() });
     }
     const stroke: Stroke = {
       id: Date.now().toString(36) + Math.random().toString(36).slice(2),
@@ -232,12 +249,7 @@ export default function WhiteboardCanvas({
       const t = transformSV.value;
       const cx = (e.x - t.offsetX) / t.scale;
       const cy = (e.y - t.offsetY) / t.scale;
-      const prev = activePointsSV.value;
-      const next = new Array(prev.length + 2);
-      for (let i = 0; i < prev.length; i++) next[i] = prev[i];
-      next[prev.length]     = cx;
-      next[prev.length + 1] = cy;
-      activePointsSV.value  = next;
+      activePointsSV.value = activePointsSV.value.concat(cx, cy);
     })
     .onEnd(() => {
       'worklet';
@@ -245,7 +257,6 @@ export default function WhiteboardCanvas({
       const color = activeColorSV.value;
       const width = activeWidthSV.value;
       const t     = toolSV.value;
-      activePointsSV.value = [];
       if (pts.length > 0) runOnJS(finalizeStroke)(pts, color, width, t);
     });
 
