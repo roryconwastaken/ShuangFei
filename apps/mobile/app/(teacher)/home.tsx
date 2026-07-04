@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import * as Clipboard from 'expo-clipboard';
 import { supabase, Document } from '../../src/lib/supabase';
 import { useAuthStore } from '../../src/stores/authStore';
 
@@ -25,6 +26,14 @@ export default function TeacherHome() {
   const [whiteboards, setWhiteboards] = useState<WhiteboardRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [codeCopied, setCodeCopied] = useState(false);
+
+  const copyClassCode = useCallback(async () => {
+    if (!profile?.class_code) return;
+    await Clipboard.setStringAsync(profile.class_code);
+    setCodeCopied(true);
+    setTimeout(() => setCodeCopied(false), 1500);
+  }, [profile?.class_code]);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -150,7 +159,10 @@ export default function TeacherHome() {
         <View style={styles.codeBar}>
           <Text style={styles.codeLabel}>Class Code</Text>
           <Text style={styles.code}>{profile.class_code}</Text>
-          <Text style={styles.codeHint}>Share with students</Text>
+          <TouchableOpacity style={styles.copyBtn} onPress={copyClassCode} activeOpacity={0.7}>
+            <Text style={styles.copyIcon}>{codeCopied ? '✓' : '⧉'}</Text>
+          </TouchableOpacity>
+          <Text style={styles.codeHint}>{codeCopied ? 'Copied!' : 'Share with students'}</Text>
         </View>
       )}
 
@@ -212,7 +224,13 @@ const styles = StyleSheet.create({
   },
   codeLabel: { color: 'rgba(255,255,255,0.5)', fontSize: 12, fontWeight: '600' },
   code: { fontSize: 22, fontWeight: '800', color: '#fff', letterSpacing: 4 },
-  codeHint: { color: 'rgba(255,255,255,0.35)', fontSize: 11 },
+  codeHint: { color: 'rgba(255,255,255,0.35)', fontSize: 11, flex: 1 },
+  copyBtn: {
+    width: 28, height: 28, borderRadius: 14,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    justifyContent: 'center', alignItems: 'center',
+  },
+  copyIcon: { color: 'rgba(255,255,255,0.7)', fontSize: 13 },
   sectionHeader: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: 20, paddingTop: 20, paddingBottom: 8,
