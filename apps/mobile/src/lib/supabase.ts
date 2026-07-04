@@ -92,6 +92,15 @@ export interface TeacherAnnotation {
 // Canvas stroke types
 // ============================================================
 
+export interface TextBox {
+  id: string;
+  x: number;       // canvas-space coordinate
+  y: number;
+  text: string;
+  fontSize: number; // canvas-space font size (scales with zoom)
+  color: string;
+}
+
 export interface StrokePoint {
   x: number;
   y: number;

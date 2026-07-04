@@ -21,7 +21,7 @@ export default function StudentHome() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [teacherName, setTeacherName] = useState<string | null>(null);
-  const [activeWhiteboard, setActiveWhiteboard] = useState<{ id: string; title: string } | null>(null);
+  const [activeWhiteboards, setActiveWhiteboards] = useState<{ id: string; title: string }[]>([]);
 
   // Join class modal state
   const [joinVisible, setJoinVisible] = useState(false);
@@ -49,15 +49,17 @@ export default function StudentHome() {
       .maybeSingle();
     setTeacherName((st?.teacher as any)?.name ?? null);
 
-    // Find an active whiteboard the student has been specifically granted access to
-    const { data: wb } = await supabase
+    const { data: wbs } = await supabase
       .from('whiteboard_student_shares')
       .select('document:documents(id, title, whiteboard_shares(is_active))')
-      .eq('student_id', profile?.id)
-      .maybeSingle();
-    const doc = (wb?.document as any);
-    const live = doc?.whiteboard_shares?.[0]?.is_active === true;
-    setActiveWhiteboard(live ? { id: doc.id, title: doc.title } : null);
+      .eq('student_id', profile?.id);
+
+    const liveBoards = (wbs ?? [])
+      .map(wb => wb?.document as any)
+      .filter(doc => doc?.whiteboard_shares?.[0]?.is_active === true)
+      .map(doc => ({ id: doc.id as string, title: doc.title as string }));
+
+    setActiveWhiteboards(liveBoards);
 
     setLoading(false);
   }, [profile?.id]);
@@ -150,20 +152,21 @@ export default function StudentHome() {
         </TouchableOpacity>
       </View>
 
-      {/* Live whiteboard banner */}
-      {activeWhiteboard && (
+      {/* Live whiteboard banners */}
+      {activeWhiteboards.map(wb => (
         <TouchableOpacity
+          key={wb.id}
           style={styles.wbBanner}
-          onPress={() => router.push(`/(student)/whiteboard/${activeWhiteboard.id}`)}
+          onPress={() => router.push(`/(student)/whiteboard/${wb.id}`)}
         >
           <View style={styles.wbLiveDot} />
           <View style={{ flex: 1 }}>
             <Text style={styles.wbBannerLabel}>Live Whiteboard</Text>
-            <Text style={styles.wbBannerTitle} numberOfLines={1}>{activeWhiteboard.title}</Text>
+            <Text style={styles.wbBannerTitle} numberOfLines={1}>{wb.title}</Text>
           </View>
           <Text style={styles.wbBannerChevron}>›</Text>
         </TouchableOpacity>
-      )}
+      ))}
 
       {/* New document button */}
       <TouchableOpacity

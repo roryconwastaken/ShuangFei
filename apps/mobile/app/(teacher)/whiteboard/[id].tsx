@@ -9,10 +9,10 @@ import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import WhiteboardCanvas from '../../../src/components/canvas/WhiteboardCanvas';
 import { useCanvas } from '../../../src/hooks/useCanvas';
 import { useAuthStore } from '../../../src/stores/authStore';
-import { supabase } from '../../../src/lib/supabase';
+import { supabase, TextBox } from '../../../src/lib/supabase';
 
-const WIDTHS  = [2, 4, 8];
-const COLORS  = ['#1a1a1a', '#8B1A1A', '#2563eb', '#16a34a', '#f97316', '#9333ea'];
+const WIDTHS = [2, 4, 8];
+const COLORS = ['#1a1a1a', '#8B1A1A', '#2563eb', '#16a34a', '#f97316'];
 
 interface StudentAccess {
   id: string;
@@ -29,8 +29,12 @@ export default function TeacherWhiteboard() {
   const [title, setTitle] = useState('');
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleDraft, setTitleDraft] = useState('');
+  const [wbTool, setWbTool] = useState<'pen' | 'eraser' | 'text'>('pen');
   const [zoomLocked, setZoomLocked] = useState(false);
   const [color, setColor] = useState('#1a1a1a');
+  const [textFontSize, setTextFontSize] = useState(24);
+  const [selectedTextBoxId, setSelectedTextBoxId] = useState<string | null>(null);
+  const [editingTextBoxId, setEditingTextBoxId] = useState<string | null>(null);
   const [isSharing, setIsSharing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
@@ -39,7 +43,8 @@ export default function TeacherWhiteboard() {
   const shareIdRef = useRef<string | null>(null);
 
   const {
-    strokes, tool, setTool, strokeWidth, setStrokeWidth,
+    strokes, strokeWidth, setStrokeWidth,
+    textBoxes, handleTextBoxEnd,
     loadPage, handleStrokeEnd, undo, canUndo, redo, canRedo, setPageCount,
   } = useCanvas(id);
 
@@ -62,6 +67,14 @@ export default function TeacherWhiteboard() {
     };
     init();
   }, [id]);
+
+  // Auto-deselect text boxes when switching away from text tool
+  useEffect(() => {
+    if (wbTool !== 'text') {
+      setSelectedTextBoxId(null);
+      setEditingTextBoxId(null);
+    }
+  }, [wbTool]);
 
   const loadStudents = useCallback(async () => {
     setStudentsLoading(true);
@@ -98,13 +111,11 @@ export default function TeacherWhiteboard() {
 
   const toggleStudentAccess = async (student: StudentAccess) => {
     if (student.hasAccess) {
-      // Remove access
       await supabase.from('whiteboard_student_shares').delete().eq('id', student.shareRowId!);
       setStudents(prev => prev.map(s =>
         s.id === student.id ? { ...s, hasAccess: false, shareRowId: undefined } : s
       ));
     } else {
-      // Grant access
       const { data } = await supabase
         .from('whiteboard_student_shares')
         .insert({ document_id: id, student_id: student.id })
@@ -156,6 +167,37 @@ export default function TeacherWhiteboard() {
     setTimeout(() => setSaving(false), 2000);
   };
 
+  // Tap on empty canvas in text mode: deselect if something selected, else place new box
+  const handleCanvasTap = useCallback((cx: number, cy: number) => {
+    if (selectedTextBoxId) {
+      setSelectedTextBoxId(null);
+      setEditingTextBoxId(null);
+      return;
+    }
+    const newBox: TextBox = {
+      id: Date.now().toString(36) + Math.random().toString(36).slice(2),
+      x: cx,
+      y: cy,
+      text: '',
+      fontSize: textFontSize,
+      color,
+    };
+    handleTextBoxEnd([...textBoxes, newBox]);
+    setSelectedTextBoxId(newBox.id);
+    setEditingTextBoxId(newBox.id);
+  }, [selectedTextBoxId, textBoxes, textFontSize, color, handleTextBoxEnd]);
+
+  // Called when TextInput blurs — saves final text or removes empty box
+  const handleTextBoxEditEnd = useCallback((boxId: string, text: string) => {
+    setEditingTextBoxId(null);
+    setSelectedTextBoxId(null);
+    if (!text.trim()) {
+      handleTextBoxEnd(textBoxes.filter(b => b.id !== boxId));
+    } else {
+      handleTextBoxEnd(textBoxes.map(b => b.id === boxId ? { ...b, text } : b));
+    }
+  }, [textBoxes, handleTextBoxEnd]);
+
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right', 'bottom']}>
       {/* Header */}
@@ -187,15 +229,19 @@ export default function TeacherWhiteboard() {
 
       {/* Toolbar */}
       <View style={styles.toolbar}>
-        <TouchableOpacity style={[styles.btn, tool === 'pen' && styles.btnActive]} onPress={() => setTool('pen')}>
+        <TouchableOpacity style={[styles.btn, wbTool === 'pen' && styles.btnActive]} onPress={() => setWbTool('pen')}>
           <MaterialCommunityIcons name="pencil" size={20} color="#fff" />
         </TouchableOpacity>
-        <TouchableOpacity style={[styles.btn, tool === 'eraser' && styles.btnActive]} onPress={() => setTool('eraser')}>
+        <TouchableOpacity style={[styles.btn, wbTool === 'eraser' && styles.btnActive]} onPress={() => setWbTool('eraser')}>
           <MaterialCommunityIcons name="eraser" size={20} color="#fff" />
+        </TouchableOpacity>
+        <TouchableOpacity style={[styles.btn, wbTool === 'text' && styles.btnActive]} onPress={() => setWbTool('text')}>
+          <MaterialCommunityIcons name="format-text" size={20} color="#fff" />
         </TouchableOpacity>
 
         <View style={styles.divider} />
 
+        {/* Stroke width picker */}
         {WIDTHS.map(w => (
           <TouchableOpacity key={w} style={[styles.widthBtn, strokeWidth === w && styles.widthBtnActive]} onPress={() => setStrokeWidth(w)}>
             <View style={{ width: w * 2.5, height: w * 2.5, borderRadius: w * 2.5, backgroundColor: '#fff' }} />
@@ -204,8 +250,17 @@ export default function TeacherWhiteboard() {
 
         <View style={styles.divider} />
 
+        {/* Color picker — changes selected text box color when one is selected */}
         {COLORS.map(c => (
-          <TouchableOpacity key={c} style={styles.colorBtn} onPress={() => { setColor(c); setTool('pen'); }}>
+          <TouchableOpacity key={c} style={styles.colorBtn} onPress={() => {
+            setColor(c);
+            if (selectedTextBoxId) {
+              handleTextBoxEnd(textBoxes.map(b =>
+                b.id === selectedTextBoxId ? { ...b, color: c } : b
+              ));
+            }
+            if (wbTool === 'eraser') setWbTool('pen');
+          }}>
             <View style={[styles.colorDot, { backgroundColor: c }, color === c && styles.colorDotActive]} />
           </TouchableOpacity>
         ))}
@@ -229,17 +284,20 @@ export default function TeacherWhiteboard() {
         <Text style={styles.saveStatus}>{saving ? 'Saving...' : 'Saved ✓'}</Text>
         <View style={styles.divider} />
 
-        {/* Clear all strokes */}
         <TouchableOpacity style={styles.clearBtn} onPress={() => {
           Alert.alert('Clear Whiteboard', 'Clear all strokes on this whiteboard?', [
             { text: 'Cancel', style: 'cancel' },
-            { text: 'Clear', style: 'destructive', onPress: () => handleStrokeEnd([]) },
+            { text: 'Clear', style: 'destructive', onPress: () => {
+              handleStrokeEnd([]);
+              handleTextBoxEnd([]);
+              setSelectedTextBoxId(null);
+              setEditingTextBoxId(null);
+            } },
           ]);
         }}>
           <MaterialCommunityIcons name="broom" size={18} color="rgba(255,255,255,0.7)" />
         </TouchableOpacity>
 
-        {/* Delete whiteboard */}
         <TouchableOpacity style={styles.deleteBtn} onPress={confirmDelete}>
           <MaterialCommunityIcons name="trash-can-outline" size={18} color="rgba(255,255,255,0.7)" />
         </TouchableOpacity>
@@ -247,18 +305,38 @@ export default function TeacherWhiteboard() {
 
       <WhiteboardCanvas
         strokes={strokes}
-        tool={tool}
+        textBoxes={textBoxes}
+        selectedTextBoxId={selectedTextBoxId}
+        editingTextBoxId={editingTextBoxId}
+        tool={wbTool}
         strokeWidth={strokeWidth}
         color={color}
         zoomLocked={zoomLocked}
         onStrokeEnd={onStrokeEnd}
+        onCanvasTap={handleCanvasTap}
+        onTextBoxSelect={(boxId) => {
+          if (boxId === null) {
+            setSelectedTextBoxId(null);
+            setEditingTextBoxId(null);
+            return;
+          }
+          // First tap selects (shows move/resize handles); tapping the
+          // already-selected box again enters editing.
+          if (selectedTextBoxId === boxId && wbTool === 'text') {
+            setEditingTextBoxId(boxId);
+          } else {
+            setSelectedTextBoxId(boxId);
+            setEditingTextBoxId(null);
+          }
+        }}
+        onTextBoxChange={handleTextBoxEnd}
+        onTextBoxEditEnd={handleTextBoxEditEnd}
       />
 
       {/* Share panel */}
       <Modal visible={shareOpen} animationType="slide" transparent onRequestClose={() => setShareOpen(false)}>
         <View style={styles.modalOverlay}>
           <View style={styles.sharePanel}>
-            {/* Handle */}
             <View style={styles.panelHandle} />
 
             <View style={styles.panelHeader}>
@@ -268,7 +346,6 @@ export default function TeacherWhiteboard() {
               </TouchableOpacity>
             </View>
 
-            {/* Go Live toggle */}
             <View style={styles.liveRow}>
               <View>
                 <Text style={styles.liveLabel}>Go Live</Text>
@@ -348,8 +425,6 @@ const styles = StyleSheet.create({
   btn: { width: 40, height: 40, borderRadius: 8, justifyContent: 'center', alignItems: 'center' },
   btnActive: { backgroundColor: '#8B1A1A' },
   btnDisabled: { opacity: 0.3 },
-  btnIcon: { fontSize: 18, color: '#fff' },
-  iconDisabled: { opacity: 0.4 },
   widthBtn: { width: 36, height: 36, borderRadius: 8, justifyContent: 'center', alignItems: 'center' },
   widthBtnActive: { backgroundColor: 'rgba(255,255,255,0.15)' },
   divider: { width: 1, height: 28, backgroundColor: 'rgba(255,255,255,0.15)', marginHorizontal: 4 },

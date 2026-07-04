@@ -1,8 +1,9 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { supabase, Stroke } from '../lib/supabase';
+import { supabase, Stroke, TextBox } from '../lib/supabase';
 
 export function useStudentWhiteboard(documentId: string) {
   const [strokes, setStrokes] = useState<Stroke[]>([]);
+  const [textBoxes, setTextBoxes] = useState<TextBox[]>([]);
   const [pageNumber, setPageNumber] = useState(1);
   const [pageCount, setPageCount] = useState(1);
 
@@ -10,6 +11,7 @@ export function useStudentWhiteboard(documentId: string) {
 
   const loadPage = useCallback(async (pageNum: number) => {
     setStrokes([]);
+    setTextBoxes([]);
     setPageNumber(pageNum);
 
     if (channelRef.current) supabase.removeChannel(channelRef.current);
@@ -24,8 +26,9 @@ export function useStudentWhiteboard(documentId: string) {
     if (!page) return;
 
     setStrokes(page.student_strokes ?? []);
+    setTextBoxes(page.text_boxes ?? []);
 
-    // Live subscription — teacher drawing appears in real time
+    // Live subscription — teacher drawing and text boxes appear in real time
     channelRef.current = supabase
       .channel(`wb:${page.id}`)
       .on('postgres_changes', {
@@ -35,6 +38,7 @@ export function useStudentWhiteboard(documentId: string) {
         filter: `id=eq.${page.id}`,
       }, payload => {
         setStrokes((payload.new as any)?.student_strokes ?? []);
+        setTextBoxes((payload.new as any)?.text_boxes ?? []);
       })
       .subscribe();
   }, [documentId]);
@@ -49,5 +53,5 @@ export function useStudentWhiteboard(documentId: string) {
     };
   }, []);
 
-  return { strokes, pageNumber, pageCount, setPageCount, loadPage, goToPage };
+  return { strokes, textBoxes, pageNumber, pageCount, setPageCount, loadPage, goToPage };
 }

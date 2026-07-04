@@ -13,7 +13,7 @@ export default function StudentWhiteboard() {
   const [title, setTitle] = useState('');
   const [zoomLocked, setZoomLocked] = useState(false); // unlocked by default
 
-  const { strokes, setPageCount, loadPage } = useStudentWhiteboard(id);
+  const { strokes, textBoxes, setPageCount, loadPage } = useStudentWhiteboard(id);
 
   useEffect(() => {
     const init = async () => {
@@ -50,9 +50,9 @@ export default function StudentWhiteboard() {
         </TouchableOpacity>
       </View>
 
-      {/* Single finger to pan, pinch to zoom */}
       <WhiteboardCanvas
         strokes={strokes}
+        textBoxes={textBoxes}
         readOnly
         singleFingerPan
         tool="pen"

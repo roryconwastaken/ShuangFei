@@ -3,27 +3,20 @@
  *
  * Coordinate system: (0,0) is the center of the screen on first layout.
  * Strokes are stored in this canvas-space coordinate system.
- *
- * Key differences from BKBCanvas:
- *  - Dot grid (not BKB lines), no margins
- *  - Pan/zoom lock freezes current position instead of resetting to origin
- *  - singleFingerPan: one finger pans (for read-only student view)
- *  - No page navigation — single infinite surface
  */
-import React, { useCallback, useEffect, useMemo, useRef, useState, memo } from 'react';
-import { View, StyleSheet, LayoutChangeEvent } from 'react-native';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { View, StyleSheet, LayoutChangeEvent, TextInput } from 'react-native';
 import { Canvas, Path, Rect, Group, Skia, SkPath } from '@shopify/react-native-skia';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import { useSharedValue, useDerivedValue, runOnJS, runOnUI } from 'react-native-reanimated';
-import { Stroke, StrokePoint } from '../../lib/supabase';
+import Animated, { useSharedValue, useDerivedValue, useAnimatedStyle, runOnJS, runOnUI, SharedValue } from 'react-native-reanimated';
+import { Stroke, StrokePoint, TextBox } from '../../lib/supabase';
 
 const BG_COLOR    = '#ffffff';
 const DOT_COLOR   = '#d0d8e0';
 const DOT_SPACING = 40;
 const DOT_RADIUS  = 1.5;
-const EXTENT      = 2500; // canvas coords: -EXTENT to +EXTENT in each direction
+const EXTENT      = 2500;
 
-// Dot grid is drawn once and lives in canvas space (moves with transform)
 const dotGridPath = (() => {
   const builder = Skia.PathBuilder.Make();
   for (let x = -EXTENT; x <= EXTENT; x += DOT_SPACING) {
@@ -36,13 +29,203 @@ const dotGridPath = (() => {
 
 interface WhiteboardCanvasProps {
   strokes: Stroke[];
+  textBoxes?: TextBox[];
+  selectedTextBoxId?: string | null;
+  editingTextBoxId?: string | null;
   readOnly?: boolean;
   singleFingerPan?: boolean;
-  tool: 'pen' | 'eraser';
+  tool: 'pen' | 'eraser' | 'text';
   strokeWidth: number;
   color?: string;
   zoomLocked: boolean;
   onStrokeEnd?: (strokes: Stroke[]) => void;
+  onCanvasTap?: (canvasX: number, canvasY: number) => void;
+  onTextBoxSelect?: (id: string | null) => void;
+  onTextBoxChange?: (boxes: TextBox[]) => void;
+  onTextBoxEditEnd?: (id: string, text: string) => void;
+}
+
+function TextBoxItem({
+  box, isSelected, isEditing, readOnly, transformSV,
+  onSelect, onMoveEnd, onResizeEnd, onDelete, onEditEnd,
+}: {
+  box: TextBox;
+  isSelected: boolean;
+  isEditing: boolean;
+  readOnly: boolean;
+  transformSV: SharedValue<{ scale: number; offsetX: number; offsetY: number }>;
+  onSelect: () => void;
+  onMoveEnd: (newX: number, newY: number) => void;
+  onResizeEnd: (newFontSize: number) => void;
+  onDelete: () => void;
+  onEditEnd: (text: string) => void;
+}) {
+  const [localText, setLocalText] = useState(box.text);
+  const [editFontSize, setEditFontSize] = useState(() => Math.max(8, box.fontSize * transformSV.value.scale));
+
+  // Keep localText fresh when not editing (e.g. remote updates)
+  useEffect(() => { if (!isEditing) setLocalText(box.text); }, [box.text, isEditing]);
+
+  // Save whenever editing ends, however it was triggered (TextInput blur,
+  // or the parent clearing editingTextBoxId directly on deselect/tool switch)
+  const localTextRef = useRef(localText);
+  useEffect(() => { localTextRef.current = localText; }, [localText]);
+  const wasEditingRef = useRef(isEditing);
+  useEffect(() => {
+    if (wasEditingRef.current && !isEditing) onEditEnd(localTextRef.current);
+    wasEditingRef.current = isEditing;
+  }, [isEditing, onEditEnd]);
+
+  // Snapshot screen-space font size when editing starts or size changes while editing
+  useEffect(() => {
+    if (isEditing) setEditFontSize(Math.max(8, box.fontSize * transformSV.value.scale));
+  }, [isEditing, box.fontSize]);
+
+  const panSV     = useSharedValue({ x: 0, y: 0 });
+  const baseSV    = useSharedValue({ x: box.x, y: box.y });
+  const resizeSV  = useSharedValue(0);
+  const fontBSV   = useSharedValue(box.fontSize);
+  const boxSizeSV = useSharedValue({ w: 120, h: 30 });
+
+  useEffect(() => { baseSV.value = { x: box.x, y: box.y }; }, [box.x, box.y]);
+  useEffect(() => { fontBSV.value = box.fontSize; }, [box.fontSize]);
+
+  const containerStyle = useAnimatedStyle(() => ({
+    position: 'absolute',
+    left: (baseSV.value.x + panSV.value.x) * transformSV.value.scale + transformSV.value.offsetX,
+    top:  (baseSV.value.y + panSV.value.y) * transformSV.value.scale + transformSV.value.offsetY,
+  }));
+
+  const textStyle = useAnimatedStyle(() => ({
+    fontSize: Math.max(8, (fontBSV.value + resizeSV.value) * transformSV.value.scale),
+  }));
+
+  const handleDeleteStyle = useAnimatedStyle(() => {
+    const t = transformSV.value;
+    const sx = (baseSV.value.x + panSV.value.x) * t.scale + t.offsetX;
+    const sy = (baseSV.value.y + panSV.value.y) * t.scale + t.offsetY;
+    return { position: 'absolute', left: sx + boxSizeSV.value.w - 12, top: sy - 28 };
+  });
+
+  const handleResizeStyle = useAnimatedStyle(() => {
+    const t = transformSV.value;
+    const sx = (baseSV.value.x + panSV.value.x) * t.scale + t.offsetX;
+    const sy = (baseSV.value.y + panSV.value.y) * t.scale + t.offsetY;
+    return { position: 'absolute', left: sx + boxSizeSV.value.w - 8, top: sy + boxSizeSV.value.h - 8 };
+  });
+
+  const moveGesture = Gesture.Pan()
+    .minDistance(0)
+    .maxPointers(1)
+    .onUpdate(e => {
+      'worklet';
+      const s = transformSV.value.scale;
+      panSV.value = { x: e.translationX / s, y: e.translationY / s };
+    })
+    .onEnd(e => {
+      'worklet';
+      const finalX = baseSV.value.x + panSV.value.x;
+      const finalY = baseSV.value.y + panSV.value.y;
+      panSV.value = { x: 0, y: 0 };
+      if (Math.abs(e.translationX) < 6 && Math.abs(e.translationY) < 6) {
+        runOnJS(onSelect)();
+      } else {
+        runOnJS(onMoveEnd)(finalX, finalY);
+      }
+    });
+
+  const resizeGesture = Gesture.Pan()
+    .minDistance(0)
+    .onUpdate(e => {
+      'worklet';
+      const s = transformSV.value.scale;
+      resizeSV.value = (e.translationX + e.translationY) / (2 * s);
+    })
+    .onEnd(() => {
+      'worklet';
+      const newFs = Math.max(8, fontBSV.value + resizeSV.value);
+      resizeSV.value = 0;
+      runOnJS(onResizeEnd)(newFs);
+    });
+
+  const tapGesture = Gesture.Tap()
+    .onEnd(() => { 'worklet'; runOnJS(onSelect)(); });
+
+  const deleteGesture = Gesture.Tap()
+    .onEnd(() => { 'worklet'; runOnJS(onDelete)(); });
+
+  const onLayout = (e: LayoutChangeEvent) => {
+    const { width, height } = e.nativeEvent.layout;
+    boxSizeSV.value = { w: width, h: height };
+  };
+
+  if (readOnly) {
+    return (
+      <Animated.View style={[containerStyle, { padding: 6 }]} pointerEvents="none">
+        <Animated.Text style={[textStyle, { color: box.color, includeFontPadding: false }]}>
+          {box.text}
+        </Animated.Text>
+      </Animated.View>
+    );
+  }
+
+  // Editing mode — no gesture detector so TextInput gets native touch handling
+  if (isEditing) {
+    return (
+      <>
+        <Animated.View style={[containerStyle, { padding: 6 }, styles.tbSelected]} onLayout={onLayout}>
+          <TextInput
+            value={localText}
+            onChangeText={setLocalText}
+            onBlur={() => onEditEnd(localText)}
+            autoFocus
+            multiline
+            scrollEnabled={false}
+            style={{
+              color: box.color,
+              fontSize: editFontSize,
+              includeFontPadding: false,
+              minWidth: 80,
+              padding: 0,
+            }}
+          />
+        </Animated.View>
+        <GestureDetector gesture={deleteGesture}>
+          <Animated.View style={[handleDeleteStyle, styles.tbHandleBtn]}>
+            <Animated.Text style={{ color: '#fff', fontSize: 13, fontWeight: '700' }}>✕</Animated.Text>
+          </Animated.View>
+        </GestureDetector>
+      </>
+    );
+  }
+
+  return (
+    <>
+      <GestureDetector gesture={isSelected ? moveGesture : tapGesture}>
+        <Animated.View
+          style={[containerStyle, { padding: 6 }, isSelected && styles.tbSelected]}
+          onLayout={onLayout}
+        >
+          <Animated.Text style={[textStyle, { color: box.color, includeFontPadding: false }]}>
+            {box.text || ' '}
+          </Animated.Text>
+        </Animated.View>
+      </GestureDetector>
+
+      {isSelected && (
+        <>
+          <GestureDetector gesture={deleteGesture}>
+            <Animated.View style={[handleDeleteStyle, styles.tbHandleBtn]}>
+              <Animated.Text style={{ color: '#fff', fontSize: 13, fontWeight: '700' }}>✕</Animated.Text>
+            </Animated.View>
+          </GestureDetector>
+          <GestureDetector gesture={resizeGesture}>
+            <Animated.View style={[handleResizeStyle, styles.tbResizeHandle]} />
+          </GestureDetector>
+        </>
+      )}
+    </>
+  );
 }
 
 const StaticLayer = React.memo(function StaticLayer({
@@ -81,7 +264,6 @@ const StaticLayer = React.memo(function StaticLayer({
             strokeJoin="round"
           />
         ))}
-        {/* Dots drawn after strokes so eraser (white) can never visually remove them */}
         <Path path={dotGridPath} color={DOT_COLOR} style="fill" />
       </Group>
     </Canvas>
@@ -90,6 +272,9 @@ const StaticLayer = React.memo(function StaticLayer({
 
 export default function WhiteboardCanvas({
   strokes,
+  textBoxes = [],
+  selectedTextBoxId = null,
+  editingTextBoxId = null,
   readOnly = false,
   singleFingerPan = false,
   tool,
@@ -97,14 +282,20 @@ export default function WhiteboardCanvas({
   color = '#1a1a1a',
   zoomLocked,
   onStrokeEnd,
+  onCanvasTap,
+  onTextBoxSelect,
+  onTextBoxChange,
+  onTextBoxEditEnd,
 }: WhiteboardCanvasProps) {
   const [size, setSize] = useState({ width: 0, height: 0 });
   const initialised = useRef(false);
 
   const strokesRef     = useRef(strokes);
   const onStrokeEndRef = useRef(onStrokeEnd);
+  const onCanvasTapRef = useRef(onCanvasTap);
   useEffect(() => { strokesRef.current = strokes; }, [strokes]);
   useEffect(() => { onStrokeEndRef.current = onStrokeEnd; }, [onStrokeEnd]);
+  useEffect(() => { onCanvasTapRef.current = onCanvasTap; }, [onCanvasTap]);
 
   const prevStrokesLen = useRef(strokes.length);
   useEffect(() => {
@@ -114,19 +305,18 @@ export default function WhiteboardCanvas({
     prevStrokesLen.current = strokes.length;
   }, [strokes]);
 
-  const transformSV     = useSharedValue({ scale: 1, offsetX: 0, offsetY: 0 });
+  const transformSV    = useSharedValue({ scale: 1, offsetX: 0, offsetY: 0 });
   const activePointsSV = useSharedValue<number[]>([]);
-  const activeColorSV   = useSharedValue<string>('#1a1a1a');
-  const activeWidthSV   = useSharedValue<number>(strokeWidth);
-  const toolSV          = useSharedValue<string>(tool);
-  const strokeWidthSV   = useSharedValue<number>(strokeWidth);
-  const colorSV         = useSharedValue<string>(color);
-  const zoomLockedSV    = useSharedValue<boolean>(zoomLocked);
+  const activeColorSV  = useSharedValue<string>('#1a1a1a');
+  const activeWidthSV  = useSharedValue<number>(strokeWidth);
+  const toolSV         = useSharedValue<string>(tool);
+  const strokeWidthSV  = useSharedValue<number>(strokeWidth);
+  const colorSV        = useSharedValue<string>(color);
+  const zoomLockedSV   = useSharedValue<boolean>(zoomLocked);
 
   useEffect(() => { toolSV.value = tool; }, [tool]);
   useEffect(() => { strokeWidthSV.value = strokeWidth; }, [strokeWidth]);
   useEffect(() => { colorSV.value = color; }, [color]);
-  // Lock change: just freeze/unfreeze — do NOT reset transform
   useEffect(() => { zoomLockedSV.value = zoomLocked; }, [zoomLocked]);
 
   const animatedTransform = useDerivedValue(() => [
@@ -170,7 +360,7 @@ export default function WhiteboardCanvas({
     return builder.detach();
   }, []);
 
-  const finalizeStroke = useCallback((pts: number[], color: string, width: number, toolName: string) => {
+  const finalizeStroke = useCallback((pts: number[], c: string, width: number, toolName: string) => {
     const raw = pts.length === 2 ? [pts[0], pts[1], pts[0] + 0.1, pts[1] + 0.1] : pts;
     const points: StrokePoint[] = [];
     for (let i = 0; i < raw.length; i += 2) {
@@ -179,11 +369,16 @@ export default function WhiteboardCanvas({
     const stroke: Stroke = {
       id: Date.now().toString(36) + Math.random().toString(36).slice(2),
       tool: toolName as 'pen' | 'eraser',
-      color,
+      color: c,
       width,
       points,
     };
     onStrokeEndRef.current?.([...strokesRef.current, stroke]);
+  }, []);
+
+  // Stable wrapper so onCanvasTapRef is never captured by a worklet closure
+  const callCanvasTap = useCallback((cx: number, cy: number) => {
+    onCanvasTapRef.current?.(cx, cy);
   }, []);
 
   // ─── Gestures ─────────────────────────────────────────────────────────────
@@ -228,9 +423,8 @@ export default function WhiteboardCanvas({
     .maxPointers(1)
     .onBegin(e => {
       'worklet';
-      if (readOnly || zoomLockedSV.value) return;
+      if (readOnly) return;
       const t = transformSV.value;
-      // Convert screen → canvas coords (translate first, then scale in our transform order)
       const cx = (e.x - t.offsetX) / t.scale;
       const cy = (e.y - t.offsetY) / t.scale;
       if (toolSV.value === 'eraser') {
@@ -244,7 +438,7 @@ export default function WhiteboardCanvas({
     })
     .onUpdate(e => {
       'worklet';
-      if (readOnly || zoomLockedSV.value) return;
+      if (readOnly) return;
       if (activePointsSV.value.length === 0) return;
       const t = transformSV.value;
       const cx = (e.x - t.offsetX) / t.scale;
@@ -254,26 +448,37 @@ export default function WhiteboardCanvas({
     .onEnd(() => {
       'worklet';
       const pts   = activePointsSV.value;
-      const color = activeColorSV.value;
+      const c     = activeColorSV.value;
       const width = activeWidthSV.value;
       const t     = toolSV.value;
-      if (pts.length > 0) runOnJS(finalizeStroke)(pts, color, width, t);
+      if (pts.length > 0) runOnJS(finalizeStroke)(pts, c, width, t);
+    });
+
+  const tapGesture = Gesture.Tap()
+    .onEnd(e => {
+      'worklet';
+      if (toolSV.value !== 'text') return;
+      const t = transformSV.value;
+      const cx = (e.x - t.offsetX) / t.scale;
+      const cy = (e.y - t.offsetY) / t.scale;
+      runOnJS(callCanvasTap)(cx, cy);
     });
 
   const navGesture = Gesture.Simultaneous(pinchGesture, navPan);
 
   const gesture = readOnly
-    ? navGesture  // students: pan+zoom only (minPointers controlled by singleFingerPan)
+    ? navGesture
     : singleFingerPan
       ? navGesture
-      : zoomLocked
-        ? drawGesture
-        : Gesture.Simultaneous(drawGesture, navGesture);
+      : tool === 'text'
+        ? Gesture.Simultaneous(tapGesture, navGesture)
+        : zoomLocked
+          ? drawGesture
+          : Gesture.Simultaneous(drawGesture, navGesture);
 
   const handleLayout = (e: LayoutChangeEvent) => {
     const { width, height } = e.nativeEvent.layout;
     if (!initialised.current && width > 0) {
-      // Center origin on screen on first layout
       transformSV.value = { scale: 1, offsetX: width / 2, offsetY: height / 2 };
       initialised.current = true;
     }
@@ -292,6 +497,7 @@ export default function WhiteboardCanvas({
               animatedTransform={animatedTransform}
               buildPath={buildPath}
             />
+            {/* Active stroke — purely visual, no pointer events */}
             <View style={StyleSheet.absoluteFill} pointerEvents="none">
               <Canvas style={StyleSheet.absoluteFill}>
                 <Group transform={animatedTransform}>
@@ -306,6 +512,25 @@ export default function WhiteboardCanvas({
                 </Group>
               </Canvas>
             </View>
+
+            {/* Text box overlay */}
+            <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
+              {textBoxes.map(box => (
+                <TextBoxItem
+                  key={box.id}
+                  box={box}
+                  isSelected={selectedTextBoxId === box.id}
+                  isEditing={editingTextBoxId === box.id}
+                  readOnly={readOnly}
+                  transformSV={transformSV}
+                  onSelect={() => onTextBoxSelect?.(box.id)}
+                  onMoveEnd={(x, y) => onTextBoxChange?.(textBoxes.map(b => b.id === box.id ? { ...b, x, y } : b))}
+                  onResizeEnd={(fs) => onTextBoxChange?.(textBoxes.map(b => b.id === box.id ? { ...b, fontSize: fs } : b))}
+                  onDelete={() => onTextBoxChange?.(textBoxes.filter(b => b.id !== box.id))}
+                  onEditEnd={(text) => onTextBoxEditEnd?.(box.id, text)}
+                />
+              ))}
+            </View>
           </>
         )}
       </View>
@@ -314,5 +539,21 @@ export default function WhiteboardCanvas({
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: BG_COLOR },
+  container: { flex: 1, backgroundColor: BG_COLOR, overflow: 'hidden' },
+  tbSelected: {
+    borderWidth: 1.5,
+    borderColor: '#8B1A1A',
+    borderStyle: 'dashed',
+    borderRadius: 4,
+  },
+  tbHandleBtn: {
+    width: 28, height: 28, borderRadius: 14,
+    backgroundColor: '#8B1A1A',
+    justifyContent: 'center', alignItems: 'center',
+  },
+  tbResizeHandle: {
+    width: 18, height: 18, borderRadius: 3,
+    backgroundColor: '#8B1A1A',
+    borderWidth: 2, borderColor: '#fff',
+  },
 });

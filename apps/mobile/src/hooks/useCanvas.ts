@@ -1,9 +1,12 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { supabase, Stroke } from '../lib/supabase';
+import { supabase, Stroke, TextBox } from '../lib/supabase';
+
+interface HistoryEntry { strokes: Stroke[]; textBoxes: TextBox[]; }
 
 export function useCanvas(documentId: string) {
   const [strokes, setStrokes] = useState<Stroke[]>([]);
   const [annotations, setAnnotations] = useState<Stroke[]>([]);
+  const [textBoxes, setTextBoxes] = useState<TextBox[]>([]);
   const [tool, setTool] = useState<'pen' | 'eraser'>('pen');
   const [strokeWidth, setStrokeWidth] = useState(4);
   const [pageNumber, setPageNumber] = useState(1);
@@ -17,9 +20,10 @@ export function useCanvas(documentId: string) {
   const annChannelRef      = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const docChannelRef      = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
-  const historyRef         = useRef<Stroke[][]>([]);
-  const redoRef            = useRef<Stroke[][]>([]);
+  const historyRef         = useRef<HistoryEntry[]>([]);
+  const redoRef            = useRef<HistoryEntry[]>([]);
   const currentStrokesRef  = useRef<Stroke[]>([]);
+  const currentTextBoxesRef = useRef<TextBox[]>([]);
 
   const loadPage = useCallback(async (pageNum: number) => {
     setStrokes([]);
@@ -30,6 +34,7 @@ export function useCanvas(documentId: string) {
     historyRef.current      = [];
     redoRef.current         = [];
     currentStrokesRef.current = [];
+    currentTextBoxesRef.current = [];
     setCanUndo(false);
     setCanRedo(false);
 
@@ -45,6 +50,9 @@ export function useCanvas(documentId: string) {
       const loaded = data.student_strokes ?? [];
       currentStrokesRef.current = loaded;
       setStrokes(loaded);
+      const loadedBoxes = data.text_boxes ?? [];
+      currentTextBoxesRef.current = loadedBoxes;
+      setTextBoxes(loadedBoxes);
 
       // Load teacher annotations (only relevant for homework, harmless for notes)
       const { data: ann } = await supabase
@@ -100,6 +108,32 @@ export function useCanvas(documentId: string) {
     }
   }, [documentId]);
 
+  const persistTextBoxes = useCallback((boxes: TextBox[]) => {
+    if (!pageIdRef.current) return;
+    supabase
+      .from('document_pages')
+      .update({ text_boxes: boxes })
+      .eq('id', pageIdRef.current)
+      .then(() => {});
+  }, []);
+
+  const pushHistory = useCallback(() => {
+    historyRef.current = [
+      ...historyRef.current.slice(-49),
+      { strokes: currentStrokesRef.current, textBoxes: currentTextBoxesRef.current },
+    ];
+    redoRef.current = [];
+  }, []);
+
+  const handleTextBoxEnd = useCallback((newBoxes: TextBox[]) => {
+    pushHistory();
+    currentTextBoxesRef.current = newBoxes;
+    setTextBoxes(newBoxes);
+    setCanUndo(true);
+    setCanRedo(false);
+    persistTextBoxes(newBoxes);
+  }, [pushHistory, persistTextBoxes]);
+
   const scheduleSave = useCallback((newStrokes: Stroke[]) => {
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     saveTimerRef.current = setTimeout(async () => {
@@ -112,49 +146,59 @@ export function useCanvas(documentId: string) {
   }, []);
 
   const handleStrokeEnd = useCallback((newStrokes: Stroke[]) => {
-    historyRef.current = [...historyRef.current.slice(-49), currentStrokesRef.current];
-    redoRef.current = [];
+    pushHistory();
     currentStrokesRef.current = newStrokes;
     setStrokes(newStrokes);
     setCanUndo(true);
     setCanRedo(false);
     scheduleSave(newStrokes);
-  }, [scheduleSave]);
+  }, [pushHistory, scheduleSave]);
 
   const clearCurrentPage = useCallback(() => {
     const cleared: Stroke[] = [];
-    historyRef.current = [...historyRef.current.slice(-49), currentStrokesRef.current];
-    redoRef.current = [];
+    pushHistory();
     currentStrokesRef.current = cleared;
     setStrokes(cleared);
     setCanUndo(true);
     setCanRedo(false);
     scheduleSave(cleared);
-  }, [scheduleSave]);
+  }, [pushHistory, scheduleSave]);
 
   const undo = useCallback(() => {
     if (historyRef.current.length === 0) return;
     const prev = historyRef.current[historyRef.current.length - 1];
     historyRef.current = historyRef.current.slice(0, -1);
-    redoRef.current = [...redoRef.current, currentStrokesRef.current];
-    currentStrokesRef.current = prev;
-    setStrokes(prev);
+    redoRef.current = [
+      ...redoRef.current,
+      { strokes: currentStrokesRef.current, textBoxes: currentTextBoxesRef.current },
+    ];
+    currentStrokesRef.current = prev.strokes;
+    currentTextBoxesRef.current = prev.textBoxes;
+    setStrokes(prev.strokes);
+    setTextBoxes(prev.textBoxes);
     setCanUndo(historyRef.current.length > 0);
     setCanRedo(true);
-    scheduleSave(prev);
-  }, [scheduleSave]);
+    scheduleSave(prev.strokes);
+    persistTextBoxes(prev.textBoxes);
+  }, [scheduleSave, persistTextBoxes]);
 
   const redo = useCallback(() => {
     if (redoRef.current.length === 0) return;
     const next = redoRef.current[redoRef.current.length - 1];
     redoRef.current = redoRef.current.slice(0, -1);
-    historyRef.current = [...historyRef.current, currentStrokesRef.current];
-    currentStrokesRef.current = next;
-    setStrokes(next);
+    historyRef.current = [
+      ...historyRef.current,
+      { strokes: currentStrokesRef.current, textBoxes: currentTextBoxesRef.current },
+    ];
+    currentStrokesRef.current = next.strokes;
+    currentTextBoxesRef.current = next.textBoxes;
+    setStrokes(next.strokes);
+    setTextBoxes(next.textBoxes);
     setCanUndo(true);
     setCanRedo(redoRef.current.length > 0);
-    scheduleSave(next);
-  }, [scheduleSave]);
+    scheduleSave(next.strokes);
+    persistTextBoxes(next.textBoxes);
+  }, [scheduleSave, persistTextBoxes]);
 
   const addPage = useCallback(async () => {
     const newCount = pageCount + 1;
@@ -171,6 +215,7 @@ export function useCanvas(documentId: string) {
   const deletePage = useCallback(async (pageNum: number) => {
     if (pageCount <= 1) {
       const cleared: Stroke[] = [];
+      currentStrokesRef.current = cleared;
       setStrokes(cleared);
       scheduleSave(cleared);
       return;
@@ -215,6 +260,8 @@ export function useCanvas(documentId: string) {
   return {
     strokes,
     annotations,
+    textBoxes,
+    handleTextBoxEnd,
     tool,
     setTool,
     strokeWidth,
