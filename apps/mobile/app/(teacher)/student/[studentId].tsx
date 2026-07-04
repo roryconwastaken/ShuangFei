@@ -65,6 +65,7 @@ export default function StudentHomework() {
         </View>
       ) : (
         <FlatList
+          style={{ flex: 1 }}
           data={documents}
           keyExtractor={d => d.id}
           contentContainerStyle={styles.list}

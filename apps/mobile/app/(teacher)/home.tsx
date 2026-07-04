@@ -158,6 +158,7 @@ export default function TeacherHome() {
         <ActivityIndicator style={{ marginTop: 40 }} color="#8B1A1A" size="large" />
       ) : (
         <FlatList
+          style={{ flex: 1 }}
           data={students}
           keyExtractor={s => s.student_id}
           contentContainerStyle={styles.list}
