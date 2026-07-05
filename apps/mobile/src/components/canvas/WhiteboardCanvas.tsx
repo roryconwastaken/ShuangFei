@@ -504,7 +504,12 @@ export default function WhiteboardCanvas({
               animatedTransform={animatedTransform}
               buildPath={buildPath}
             />
-            {/* Active stroke — purely visual, no pointer events */}
+            {/* Active stroke — purely visual, no pointer events.
+                Dot grid is drawn on top here too (same as the static layer)
+                so the live view matches exactly what the static layer will
+                show once the stroke commits — otherwise an eraser drag looks
+                fully clean while active, then the dots "pop back" over it
+                the moment the next stroke replaces this layer. */}
             <View style={StyleSheet.absoluteFill} pointerEvents="none">
               <Canvas style={StyleSheet.absoluteFill}>
                 <Group transform={animatedTransform}>
@@ -516,6 +521,7 @@ export default function WhiteboardCanvas({
                     strokeCap="round"
                     strokeJoin="round"
                   />
+                  <Path path={dotGridPath} color={DOT_COLOR} style="fill" />
                 </Group>
               </Canvas>
             </View>
