@@ -6,6 +6,7 @@ import {
 } from 'react-native';
 import { Link } from 'expo-router';
 import { supabase, Role } from '../../src/lib/supabase';
+import PasswordField from '../../src/components/PasswordField';
 
 const CRIMSON = '#8B1A1A';
 
@@ -100,7 +101,7 @@ export default function RegisterScreen() {
           />
 
           <Text style={styles.label}>Password</Text>
-          <TextInput
+          <PasswordField
             style={[styles.input, focused('password') && styles.inputFocused]}
             value={password}
             onChangeText={setPassword}
@@ -108,11 +109,10 @@ export default function RegisterScreen() {
             onBlur={() => setFocusedField(null)}
             placeholder="Min. 6 characters"
             placeholderTextColor="#bbb"
-            secureTextEntry
           />
 
           <Text style={styles.label}>Confirm password</Text>
-          <TextInput
+          <PasswordField
             style={[styles.input, focused('confirm') && styles.inputFocused]}
             value={confirmPassword}
             onChangeText={setConfirmPassword}
@@ -120,7 +120,6 @@ export default function RegisterScreen() {
             onBlur={() => setFocusedField(null)}
             placeholder="Re-enter password"
             placeholderTextColor="#bbb"
-            secureTextEntry
           />
 
           {role === 'teacher' && (

@@ -4,6 +4,7 @@ import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 interface ToolbarProps {
   tool: 'pen' | 'eraser';
   onToolChange: (tool: 'pen' | 'eraser') => void;
+  widths: number[];
   strokeWidth: number;
   onStrokeWidthChange: (width: number) => void;
   onUndo: () => void;
@@ -22,11 +23,10 @@ interface ToolbarProps {
   onZoomLockChange: (locked: boolean) => void;
 }
 
-const WIDTHS = [2, 4, 8];
-
 export default function Toolbar({
   tool,
   onToolChange,
+  widths,
   strokeWidth,
   onStrokeWidthChange,
   onUndo,
@@ -79,7 +79,7 @@ export default function Toolbar({
       <View style={styles.divider} />
 
       {/* Stroke widths */}
-      {WIDTHS.map(w => (
+      {widths.map(w => (
         <TouchableOpacity
           key={w}
           style={[styles.widthBtn, strokeWidth === w && styles.widthBtnActive]}

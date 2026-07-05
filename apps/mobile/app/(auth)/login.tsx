@@ -6,6 +6,7 @@ import {
 } from 'react-native';
 import { Link } from 'expo-router';
 import { supabase } from '../../src/lib/supabase';
+import PasswordField from '../../src/components/PasswordField';
 
 const CRIMSON = '#8B1A1A';
 
@@ -62,7 +63,7 @@ export default function LoginScreen() {
           />
 
           <Text style={styles.label}>Password</Text>
-          <TextInput
+          <PasswordField
             style={[styles.input, passwordFocused && styles.inputFocused]}
             value={password}
             onChangeText={setPassword}
@@ -70,7 +71,6 @@ export default function LoginScreen() {
             onBlur={() => setPasswordFocused(false)}
             placeholder="••••••••"
             placeholderTextColor="#bbb"
-            secureTextEntry
           />
 
           {error ? <Text style={styles.error}>{error}</Text> : null}

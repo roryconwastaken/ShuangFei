@@ -6,6 +6,7 @@ import {
 } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { supabase, Document } from '../../src/lib/supabase';
 import { useAuthStore } from '../../src/stores/authStore';
 
@@ -147,6 +148,9 @@ export default function StudentHome() {
             </TouchableOpacity>
           )}
         </View>
+        <TouchableOpacity onPress={() => router.push('/(student)/settings')} style={styles.iconBtn}>
+          <MaterialCommunityIcons name="cog" size={20} color="#fff" />
+        </TouchableOpacity>
         <TouchableOpacity onPress={signOut} style={styles.signOutBtn}>
           <Text style={styles.signOutText}>Sign Out</Text>
         </TouchableOpacity>
@@ -297,6 +301,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6,
   },
   joinBtnText: { color: '#8B1A1A', fontSize: 12, fontWeight: '600' },
+  iconBtn: {
+    width: 36, height: 36, justifyContent: 'center', alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 8,
+    alignSelf: 'flex-start', marginTop: 4,
+  },
   signOutBtn: {
     paddingHorizontal: 14, paddingVertical: 8,
     backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 8,

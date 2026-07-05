@@ -23,6 +23,7 @@
     "react-native-screens": "^4.25.2",
     "react-native-url-polyfill": "^3.0.0",
     "react-native-web": "^0.21.2",
+    "reanimated-color-picker": "^5.1.2",
     "zustand": "^5.0.14"
   },
   "devDependencies": {

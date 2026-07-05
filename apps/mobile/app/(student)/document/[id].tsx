@@ -5,17 +5,23 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import BKBCanvas from '../../../src/components/canvas/BKBCanvas';
 import Toolbar from '../../../src/components/canvas/Toolbar';
 import { useCanvas } from '../../../src/hooks/useCanvas';
+import { useAuthStore } from '../../../src/stores/authStore';
 import { supabase } from '../../../src/lib/supabase';
 
 export default function DocumentEditor() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const { settings } = useAuthStore();
   const [title, setTitle] = useState('');
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleDraft, setTitleDraft] = useState('');
   const [saving, setSaving] = useState(false);
   const [zoomLocked, setZoomLocked] = useState(true);
   const titleInputRef = useRef<TextInput>(null);
+
+  const widths = settings
+    ? [settings.pen_size_s, settings.pen_size_m, settings.pen_size_l]
+    : [2, 4, 8];
 
   const {
     strokes,
@@ -32,6 +38,16 @@ export default function DocumentEditor() {
     goToPage,
     deletePage,
   } = useCanvas(id);
+
+  // Snap the default stroke width to the user's saved "M" size once
+  // settings arrive (they load asynchronously after mount) — guarded so
+  // it never overwrites a width the user has since picked manually.
+  const didSyncWidth = useRef(false);
+  useEffect(() => {
+    if (didSyncWidth.current || !settings) return;
+    didSyncWidth.current = true;
+    setStrokeWidth(settings.pen_size_m);
+  }, [settings]);
 
   useEffect(() => {
     const init = async () => {
@@ -121,6 +137,7 @@ export default function DocumentEditor() {
       <Toolbar
         tool={tool}
         onToolChange={setTool}
+        widths={widths}
         strokeWidth={strokeWidth}
         onStrokeWidthChange={setStrokeWidth}
         onUndo={undo}

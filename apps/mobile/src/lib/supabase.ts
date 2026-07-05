@@ -88,6 +88,16 @@ export interface TeacherAnnotation {
   updated_at: string;
 }
 
+export interface UserSettings {
+  user_id: string;
+  pen_size_s: number;
+  pen_size_m: number;
+  pen_size_l: number;
+  pen_colors: string[]; // always length 5 — teacher whiteboard swatches
+  created_at: string;
+  updated_at: string;
+}
+
 // ============================================================
 // Canvas stroke types
 // ============================================================

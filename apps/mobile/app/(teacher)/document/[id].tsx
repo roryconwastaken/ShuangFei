@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -8,16 +8,27 @@ import { useTeacherCanvas } from '../../../src/hooks/useTeacherCanvas';
 import { useAuthStore } from '../../../src/stores/authStore';
 import { supabase } from '../../../src/lib/supabase';
 
-const WIDTHS = [2, 4, 8];
-
 export default function TeacherDocument() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const { profile } = useAuthStore();
+  const { profile, settings } = useAuthStore();
   const [title, setTitle] = useState('');
   const [zoomLocked, setZoomLocked] = useState(true);
   const [strokeWidth, setStrokeWidth] = useState(4);
   const [tool, setTool] = useState<'pen' | 'eraser'>('pen');
+
+  const widths = settings
+    ? [settings.pen_size_s, settings.pen_size_m, settings.pen_size_l]
+    : [2, 4, 8];
+
+  // Snap the default stroke width to the user's saved "M" size once
+  // settings arrive — guarded so it never fights a manual pick since.
+  const didSyncWidth = useRef(false);
+  useEffect(() => {
+    if (didSyncWidth.current || !settings) return;
+    didSyncWidth.current = true;
+    setStrokeWidth(settings.pen_size_m);
+  }, [settings]);
 
   const {
     strokes,
@@ -108,7 +119,7 @@ export default function TeacherDocument() {
         <View style={styles.divider} />
 
         {/* Stroke widths (red dots) */}
-        {WIDTHS.map(w => (
+        {widths.map(w => (
           <TouchableOpacity
             key={w}
             style={[styles.widthBtn, strokeWidth === w && styles.widthBtnActive]}

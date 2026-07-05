@@ -6,6 +6,7 @@ import {
 import { useRouter, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Clipboard from 'expo-clipboard';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { supabase, Document } from '../../src/lib/supabase';
 import { useAuthStore } from '../../src/stores/authStore';
 
@@ -150,6 +151,9 @@ export default function TeacherHome() {
           <Text style={styles.greeting}>Welcome back,</Text>
           <Text style={styles.name}>{profile?.name}</Text>
         </View>
+        <TouchableOpacity onPress={() => router.push('/(teacher)/settings')} style={styles.iconBtn}>
+          <MaterialCommunityIcons name="cog" size={20} color="#fff" />
+        </TouchableOpacity>
         <TouchableOpacity onPress={signOut} style={styles.signOutBtn}>
           <Text style={styles.signOutText}>Sign Out</Text>
         </TouchableOpacity>
@@ -212,6 +216,11 @@ const styles = StyleSheet.create({
   },
   greeting: { color: 'rgba(255,255,255,0.6)', fontSize: 13 },
   name: { color: '#fff', fontSize: 20, fontWeight: '700', marginTop: 2 },
+  iconBtn: {
+    width: 36, height: 36, justifyContent: 'center', alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 8,
+    alignSelf: 'flex-start', marginTop: 4,
+  },
   signOutBtn: {
     paddingHorizontal: 14, paddingVertical: 8,
     backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 8,

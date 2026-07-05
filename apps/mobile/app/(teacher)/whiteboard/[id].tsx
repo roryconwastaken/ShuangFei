@@ -11,9 +11,6 @@ import { useCanvas } from '../../../src/hooks/useCanvas';
 import { useAuthStore } from '../../../src/stores/authStore';
 import { supabase, TextBox } from '../../../src/lib/supabase';
 
-const WIDTHS = [2, 4, 8];
-const COLORS = ['#1a1a1a', '#8B1A1A', '#2563eb', '#16a34a', '#f97316'];
-
 interface StudentAccess {
   id: string;
   name: string;
@@ -24,7 +21,12 @@ interface StudentAccess {
 export default function TeacherWhiteboard() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const { profile } = useAuthStore();
+  const { profile, settings } = useAuthStore();
+
+  const widths = settings
+    ? [settings.pen_size_s, settings.pen_size_m, settings.pen_size_l]
+    : [2, 4, 8];
+  const colors = settings?.pen_colors ?? ['#1a1a1a', '#8B1A1A', '#2563eb', '#16a34a', '#f97316'];
 
   const [title, setTitle] = useState('');
   const [editingTitle, setEditingTitle] = useState(false);
@@ -47,6 +49,17 @@ export default function TeacherWhiteboard() {
     textBoxes, handleTextBoxEnd,
     loadPage, handleStrokeEnd, undo, canUndo, redo, canRedo, setPageCount,
   } = useCanvas(id);
+
+  // Snap the default stroke width + color to the user's saved settings
+  // once they arrive (loaded async after mount) — guarded so it never
+  // fights a width/color the user has since picked manually.
+  const didSyncStyle = useRef(false);
+  useEffect(() => {
+    if (didSyncStyle.current || !settings) return;
+    didSyncStyle.current = true;
+    setStrokeWidth(settings.pen_size_m);
+    setColor(settings.pen_colors[0]);
+  }, [settings]);
 
   useEffect(() => {
     const init = async () => {
@@ -242,7 +255,7 @@ export default function TeacherWhiteboard() {
         <View style={styles.divider} />
 
         {/* Stroke width picker */}
-        {WIDTHS.map(w => (
+        {widths.map(w => (
           <TouchableOpacity key={w} style={[styles.widthBtn, strokeWidth === w && styles.widthBtnActive]} onPress={() => setStrokeWidth(w)}>
             <View style={{ width: w * 2.5, height: w * 2.5, borderRadius: w * 2.5, backgroundColor: '#fff' }} />
           </TouchableOpacity>
@@ -251,7 +264,7 @@ export default function TeacherWhiteboard() {
         <View style={styles.divider} />
 
         {/* Color picker — changes selected text box color when one is selected */}
-        {COLORS.map(c => (
+        {colors.map(c => (
           <TouchableOpacity key={c} style={styles.colorBtn} onPress={() => {
             setColor(c);
             if (selectedTextBoxId) {

@@ -6,7 +6,7 @@ import { supabase } from '../src/lib/supabase';
 import { useAuthStore } from '../src/stores/authStore';
 
 export default function RootLayout() {
-  const { session, profile, setSession, fetchProfile, loading } = useAuthStore();
+  const { session, profile, setSession, fetchProfile, fetchSettings, loading } = useAuthStore();
   const router = useRouter();
   const segments = useSegments();
 
@@ -14,13 +14,19 @@ export default function RootLayout() {
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
-      if (session?.user) fetchProfile(session.user.id);
+      if (session?.user) {
+        fetchProfile(session.user.id);
+        fetchSettings(session.user.id);
+      }
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (_event, session) => {
         setSession(session);
-        if (session?.user) fetchProfile(session.user.id);
+        if (session?.user) {
+          fetchProfile(session.user.id);
+          fetchSettings(session.user.id);
+        }
       }
     );
 
