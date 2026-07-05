@@ -5,7 +5,7 @@
     "scheme": "shuangfei",
     "version": "1.0.0",
     "orientation": "default",
-    "icon": "./assets/ShuangFei Logo.png",
+    "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "ios": {
       "supportsTablet": true
@@ -13,13 +13,13 @@
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#ffffff",
-        "foregroundImage": "./assets/ShuangFei Logo.png"
+        "foregroundImage": "./assets/icon-adaptive-foreground.png"
       },
       "predictiveBackGestureEnabled": false,
       "package": "com.roryconwastaken.shuangfei"
     },
     "web": {
-      "favicon": "./assets/ShuangFei Logo.png"
+      "favicon": "./assets/icon.png"
     },
     "extra": {
       "eas": {
